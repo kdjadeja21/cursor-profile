@@ -6,7 +6,6 @@ import type { DailyTokens } from "@/lib/cursor-profile";
 import {
   formatCompactNumber,
   formatDayLabel,
-  formatFullNumber,
 } from "@/lib/derive";
 import { useIsClient } from "@/lib/use-is-client";
 
@@ -91,12 +90,15 @@ export function TokenStream({
     const innerWidth = VIEW_WIDTH - PAD.left - PAD.right;
     const innerHeight = VIEW_HEIGHT - PAD.top - PAD.bottom;
     const peak = series.reduce((best, entry) => Math.max(best, entry.tokens), 0);
-    const scale = peak > 0 ? peak : 1;
+    // Log so a 60B outlier still leaves quieter days readable instead of a flat floor.
+    const logPeak = Math.log10(peak + 1);
     const step = series.length > 1 ? innerWidth / (series.length - 1) : 0;
 
     const mapped: Point[] = series.map((entry, index) => ({
       x: PAD.left + index * step,
-      y: PAD.top + innerHeight * (1 - entry.tokens / scale),
+      y:
+        PAD.top +
+        innerHeight * (1 - (logPeak > 0 ? Math.log10(entry.tokens + 1) / logPeak : 0)),
       entry,
     }));
 
@@ -170,7 +172,7 @@ export function TokenStream({
         </p>
         <p className="text-ink-muted text-small" aria-live="polite">
           {active
-            ? `${formatFullNumber(active.entry.tokens)} tokens on ${formatDayLabel(active.entry.date)}`
+            ? `${formatCompactNumber(active.entry.tokens)} tokens on ${formatDayLabel(active.entry.date)}`
             : "tokens over the last 30 days"}
         </p>
       </div>
@@ -181,7 +183,7 @@ export function TokenStream({
           viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
           className="h-auto w-full touch-none"
           role="img"
-          aria-label={`Daily token usage for the last 30 days, peaking at ${formatFullNumber(max)} tokens on ${formatDayLabel(readout.date)}`}
+          aria-label={`Daily token usage for the last 30 days, peaking at ${formatCompactNumber(max)} tokens on ${formatDayLabel(readout.date)}`}
           tabIndex={0}
           onKeyDown={onKeyDown}
           onPointerMove={(event) => pickIndex(event.clientX)}
