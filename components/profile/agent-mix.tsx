@@ -41,12 +41,14 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
               stroke="var(--color-edge)"
               strokeWidth={14}
             />
+            {/* Round caps on a zero-length arc still paint a stray dot. */}
             <circle
               cx={98}
               cy={98}
               r={RADIUS}
               fill="none"
               stroke="var(--color-data-local)"
+              visibility={agents.local > 0 ? "visible" : "hidden"}
               strokeWidth={hovered === "local" ? 24 : 14}
               strokeLinecap="round"
               strokeDasharray={`${Math.max(0, CIRCUMFERENCE * agents.localShare - ARC_GAP)} ${CIRCUMFERENCE}`}
@@ -60,6 +62,7 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
               r={RADIUS}
               fill="none"
               stroke="var(--color-data-cloud)"
+              visibility={agents.cloud > 0 ? "visible" : "hidden"}
               strokeWidth={hovered === "cloud" ? 24 : 14}
               strokeLinecap="round"
               strokeDasharray={`${Math.max(0, CIRCUMFERENCE * agents.cloudShare - ARC_GAP)} ${CIRCUMFERENCE}`}
@@ -100,7 +103,7 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
               >
                 <span className={cx("h-2.5 w-2.5 rounded-full", colour)} />
                 <span className="text-ink text-base capitalize">{slice}</span>
-                <span className="text-ink-faint text-small tabular">
+                <span className="text-ink-faint text-small tabular whitespace-nowrap">
                   {value} ·{" "}
                   {Math.round(
                     (slice === "local" ? agents.localShare : agents.cloudShare) *
@@ -126,8 +129,9 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
             return (
               <div
                 key={day.date}
-                className="group relative flex flex-1 flex-col justify-end"
-                style={{ height: "100%" }}
+                // Capped so a short series renders as bars rather than ballooning
+                // into full-width blocks.
+                className="group relative flex h-full max-w-[18px] flex-1 flex-col justify-end"
                 title={`${formatDayLabel(day.date)}: ${day.local} local, ${day.cloud} cloud`}
               >
                 <div
@@ -155,8 +159,11 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
           })}
         </div>
         <p className="text-ink-faint text-micro mt-3">
-          {agents.windowTotal} runs in the charted window. The headline total
-          covers all tracked history, so the two differ.
+          {agents.windowTotal} {agents.windowTotal === 1 ? "run" : "runs"} in the
+          charted window.
+          {agents.windowTotal === agents.total
+            ? null
+            : " The headline total covers all tracked history, so the two differ."}
         </p>
       </div>
     </div>

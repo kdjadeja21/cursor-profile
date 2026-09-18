@@ -1,10 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import {
-  ProfileNotFoundError,
-  getCursorProfile,
-  normalizeHandle,
-} from "@/lib/cursor-profile";
+import type { CursorProfile } from "@/lib/cursor-profile";
+import { getCursorProfile, normalizeHandle } from "@/lib/cursor-profile";
 import { buildStory, formatCompactNumber } from "@/lib/derive";
 import type { HeadlineStat } from "@/components/profile/headline-marquee";
 import { HeadlineMarquee } from "@/components/profile/headline-marquee";
@@ -29,18 +26,18 @@ function resolveHandle(segment: string): string {
   return normalizeHandle(decoded);
 }
 
-async function loadProfile(segment: string) {
-  const handle = resolveHandle(segment);
+async function loadProfile(segment: string): Promise<CursorProfile> {
+  const result = await getCursorProfile(resolveHandle(segment));
 
-  try {
-    return await getCursorProfile(handle);
-  } catch (cause) {
-    if (cause instanceof ProfileNotFoundError) {
+  if (!result.ok) {
+    if (result.reason === "not-found") {
       notFound();
     }
 
-    throw cause;
+    throw new Error("Failed to load the profile.");
   }
+
+  return { profile: result.profile, activity: result.activity };
 }
 
 export async function generateMetadata({
@@ -61,13 +58,19 @@ export default async function ProfilePage({ params }: PageProps<"/[handle]">) {
   const { profile, activity } = await loadProfile(handle);
   const story = buildStory(activity, profile.createdAt);
 
+  const hasEarnedMilestone = story.milestones.some(
+    (milestone) => milestone.earned,
+  );
+
   const stats: HeadlineStat[] = [
     {
       id: "tokens",
       label: "Tokens generated",
       amount: story.calendar.totalTokens,
       kind: "compact",
-      detail: `Across ${story.calendar.trackedDays} days of tracked history`,
+      detail: story.hasActivity
+        ? `Across ${story.calendar.trackedDays} days of tracked history`
+        : "Nothing tracked yet",
       emphasis: true,
     },
     {
@@ -121,7 +124,11 @@ export default async function ProfilePage({ params }: PageProps<"/[handle]">) {
         id="tokens"
         eyebrow="Token stream"
         title="Output over the last 30 days"
-        description="Drag or use the arrow keys to scrub through individual days."
+        description={
+          story.tokenWindowTotal > 0
+            ? "Drag or use the arrow keys to scrub through individual days."
+            : "Nothing charted for this window yet."
+        }
       >
         <TokenStream
           series={story.tokenWindow}
@@ -141,8 +148,12 @@ export default async function ProfilePage({ params }: PageProps<"/[handle]">) {
       <Section
         id="milestones"
         eyebrow="Milestones"
-        title="Earned along the way"
-        description="Derived from the activity history — records, thresholds and peaks."
+        title={hasEarnedMilestone ? "Earned along the way" : "Still to come"}
+        description={
+          hasEarnedMilestone
+            ? "Derived from the activity history — records, thresholds and peaks."
+            : "Nothing unlocked yet. These are the first ones within reach."
+        }
       >
         <Milestones milestones={story.milestones} />
       </Section>

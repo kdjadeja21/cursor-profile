@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInView, useReducedMotion } from "motion/react";
 import type { Calendar, CalendarCell } from "@/lib/derive";
 import { useIsClient } from "@/lib/use-is-client";
@@ -48,22 +48,31 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
   const totalWeeks = calendar.weeks.length;
   const columns = `repeat(${totalWeeks}, minmax(0, 1fr))`;
 
+  // Roving tabindex: the grid is a single tab stop and arrows move within it. DOM focus
+  // has to move after the render that reassigns tabIndex, not inside the state updater.
+  const pendingFocus = useRef(false);
+
   const moveFocus = useCallback(
     (weekDelta: number, dayDelta: number) => {
-      setFocus((current) => {
-        const week = Math.min(
-          totalWeeks - 1,
-          Math.max(0, current.week + weekDelta),
-        );
-        const day = Math.min(6, Math.max(0, current.day + dayDelta));
-        gridRef.current
-          ?.querySelector<HTMLElement>(`[data-cell="${week}-${day}"]`)
-          ?.focus();
-        return { week, day };
-      });
+      pendingFocus.current = true;
+      setFocus((current) => ({
+        week: Math.min(totalWeeks - 1, Math.max(0, current.week + weekDelta)),
+        day: Math.min(6, Math.max(0, current.day + dayDelta)),
+      }));
     },
     [totalWeeks],
   );
+
+  useEffect(() => {
+    if (!pendingFocus.current) {
+      return;
+    }
+
+    pendingFocus.current = false;
+    gridRef.current
+      ?.querySelector<HTMLElement>(`[data-cell="${focus.week}-${focus.day}"]`)
+      ?.focus();
+  }, [focus]);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -196,6 +205,8 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
               </span>
               <span className="text-ink-faint"> · {formatDayLabel(active.date)}</span>
             </>
+          ) : calendar.activeDays === 0 ? (
+            "Nothing tracked yet — the first day lands here."
           ) : (
             <>
               {calendar.activeDays} active days of {calendar.trackedDays} tracked
@@ -216,9 +227,11 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
             />
           ))}
           <span>More</span>
-          <span className="text-ink-faint/70 ml-2">
-            up to {formatCompactNumber(calendar.maxTokens)}/day
-          </span>
+          {calendar.maxTokens > 0 ? (
+            <span className="text-ink-faint/70 ml-2">
+              up to {formatCompactNumber(calendar.maxTokens)}/day
+            </span>
+          ) : null}
         </div>
       </div>
     </div>

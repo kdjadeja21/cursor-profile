@@ -49,19 +49,15 @@ export type CursorProfile = {
   activity: ProfileActivity;
 };
 
-export class ProfileNotFoundError extends Error {
-  constructor(handle: string) {
-    super(`No public profile for handle "${handle}".`);
-    this.name = "ProfileNotFoundError";
-  }
-}
-
-export class ProfileUnavailableError extends Error {
-  constructor(message = "Failed to load the profile.") {
-    super(message);
-    this.name = "ProfileUnavailableError";
-  }
-}
+/**
+ * A result rather than a thrown error on purpose. Rejections from a `use cache`
+ * function are serialized across the cache boundary, so the original class is gone by
+ * the time a caller tries to tell "no such profile" apart from "upstream is down" —
+ * which turned every missing handle into a 500 instead of the not-found page.
+ */
+export type ProfileResult =
+  | ({ ok: true } & CursorProfile)
+  | { ok: false; reason: "not-found" | "unavailable" };
 
 export function normalizeHandle(value: unknown): string {
   if (typeof value !== "string") {
@@ -216,7 +212,7 @@ function toActivity(raw: Record<string, unknown>): ProfileActivity {
 
 export async function getCursorProfile(
   handleInput: string,
-): Promise<CursorProfile> {
+): Promise<ProfileResult> {
   "use cache";
   cacheLife("hours");
 
@@ -230,30 +226,34 @@ export async function getCursorProfile(
       body: JSON.stringify({ handle }),
     });
   } catch {
-    throw new ProfileUnavailableError("Unable to reach the profile service.");
+    return { ok: false, reason: "unavailable" };
   }
 
   if (upstream.status === 404) {
-    throw new ProfileNotFoundError(handle);
+    return { ok: false, reason: "not-found" };
   }
 
   if (!upstream.ok) {
-    throw new ProfileUnavailableError();
+    return { ok: false, reason: "unavailable" };
   }
 
   let data: unknown;
   try {
     data = await upstream.json();
   } catch {
-    throw new ProfileUnavailableError();
+    return { ok: false, reason: "unavailable" };
   }
 
   const body = asRecord(data);
   const profile = toIdentity(asRecord(body.profile));
 
   if (!profile) {
-    throw new ProfileNotFoundError(handle);
+    return { ok: false, reason: "not-found" };
   }
 
-  return { profile, activity: toActivity(asRecord(body.activitySummary)) };
+  return {
+    ok: true,
+    profile,
+    activity: toActivity(asRecord(body.activitySummary)),
+  };
 }

@@ -1,6 +1,5 @@
 import {
   DEFAULT_HANDLE,
-  ProfileNotFoundError,
   getCursorProfile,
   normalizeHandle,
 } from "@/lib/cursor-profile";
@@ -17,16 +16,16 @@ export async function POST(request: Request) {
     handle = DEFAULT_HANDLE;
   }
 
-  try {
-    return Response.json(await getCursorProfile(handle));
-  } catch (cause) {
-    if (cause instanceof ProfileNotFoundError) {
-      return Response.json({ error: "Profile not found." }, { status: 404 });
-    }
+  const result = await getCursorProfile(handle);
 
-    return Response.json(
-      { error: "Failed to load the profile." },
-      { status: 502 },
-    );
+  if (!result.ok) {
+    return result.reason === "not-found"
+      ? Response.json({ error: "Profile not found." }, { status: 404 })
+      : Response.json({ error: "Failed to load the profile." }, { status: 502 });
   }
+
+  return Response.json({
+    profile: result.profile,
+    activity: result.activity,
+  });
 }

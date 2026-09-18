@@ -207,13 +207,18 @@ export function buildCalendar(
   const maxTokens = nonZero.reduce((max, entry) => Math.max(max, entry.tokens), 0);
   const bands = quartileBands(nonZero.map((entry) => entry.tokens));
 
-  const firstTracked = counts[0]?.date ?? today;
-  const spanWeeks = Math.ceil((daysBetween(firstTracked, today) + 1) / 7);
+  const spanWeeks = counts[0]
+    ? Math.ceil((daysBetween(counts[0].date, today) + 1) / 7)
+    : MIN_WEEKS;
   const weekCount = Math.min(MAX_WEEKS, Math.max(MIN_WEEKS, spanWeeks));
 
   // Anchor the grid so the final column is the week containing today.
   const endOfWeek = shiftDays(today, 6 - new Date(parseIsoDate(today)).getUTCDay());
   const start = shiftDays(endOfWeek, -(weekCount * 7 - 1));
+
+  // With no history at all there is nothing to sit "outside" the window, so the whole
+  // grid renders as an empty canvas rather than as invisible out-of-range scaffolding.
+  const firstTracked = counts[0]?.date ?? start;
 
   const weeks: CalendarCell[][] = [];
   const months: CalendarMonthLabel[] = [];

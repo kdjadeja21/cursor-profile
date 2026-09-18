@@ -11,6 +11,16 @@ function badgeLabel(value: string): string {
     .join(" ");
 }
 
+function joinedLabel(days: number): string {
+  if (days <= 0) {
+    return "Joined today";
+  }
+
+  return days === 1
+    ? "Joined yesterday"
+    : `Joined ${days.toLocaleString("en-US")} days ago`;
+}
+
 function linkLabel(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -73,11 +83,7 @@ export function HeroBand({
 
           <Entrance delay={0.42}>
             <div className="text-ink-faint text-small mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-              {joinedDaysAgo !== null ? (
-                <span>
-                  Joined {joinedDaysAgo.toLocaleString("en-US")} days ago
-                </span>
-              ) : null}
+              {joinedDaysAgo !== null ? <span>{joinedLabel(joinedDaysAgo)}</span> : null}
               {profile.links.map((link) => (
                 <a
                   key={link}

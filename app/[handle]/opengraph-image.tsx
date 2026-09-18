@@ -1,9 +1,5 @@
 import { ImageResponse } from "next/og";
-import {
-  ProfileNotFoundError,
-  getCursorProfile,
-  normalizeHandle,
-} from "@/lib/cursor-profile";
+import { getCursorProfile, normalizeHandle } from "@/lib/cursor-profile";
 import {
   buildStory,
   formatCompactNumber,
@@ -57,18 +53,11 @@ export default async function Image({
 }) {
   const { handle } = await params;
 
-  let profile;
-  let activity;
+  const result = await getCursorProfile(
+    normalizeHandle(decodeURIComponent(handle)),
+  );
 
-  try {
-    ({ profile, activity } = await getCursorProfile(
-      normalizeHandle(decodeURIComponent(handle)),
-    ));
-  } catch (cause) {
-    if (!(cause instanceof ProfileNotFoundError)) {
-      throw cause;
-    }
-
+  if (!result.ok) {
     return new ImageResponse(
       (
         <div
@@ -90,6 +79,7 @@ export default async function Image({
     );
   }
 
+  const { profile, activity } = result;
   const story = buildStory(activity, profile.createdAt);
   // Only the most recent stretch fits legibly alongside the name at card size.
   const recent = story.calendar.weeks.slice(-17);

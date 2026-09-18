@@ -138,7 +138,9 @@ export function Momentum({ streak }: { streak: StreakStatus }) {
             />
           </div>
           <p className="text-ink-faint text-micro mt-3 tracking-[0.12em] uppercase">
-            {streak.current} of {streak.longest} · record set on the books
+            {streak.longest === 0
+              ? "No record yet"
+              : `${streak.current} of ${streak.longest} · record set on the books`}
           </p>
         </div>
       </GlassCard>
