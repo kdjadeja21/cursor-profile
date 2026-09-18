@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import type { DailyTokens } from "@/lib/cursor-profile";
 import {
   formatCompactNumber,
   formatDayLabel,
   formatFullNumber,
 } from "@/lib/derive";
-import { cx } from "@/lib/cx";
+import { useIsClient } from "@/lib/use-is-client";
 
 const VIEW_WIDTH = 960;
 const VIEW_HEIGHT = 300;
@@ -73,14 +74,18 @@ function toSmoothPath(points: Point[]): string {
 export function TokenStream({
   series,
   total,
-  animate = false,
 }: {
   series: DailyTokens[];
   total: number;
-  animate?: boolean;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const reduced = useReducedMotion();
+  const inView = useInView(svgRef, { once: true, margin: "-80px" });
+  // Without this the server renders the line with a zero-length dash array, so the
+  // chart is missing entirely until JavaScript arrives.
+  const animated = useIsClient() && !reduced;
+  const drawn = !animated || inView;
 
   const { points, linePath, areaPath, max } = useMemo(() => {
     const innerWidth = VIEW_WIDTH - PAD.left - PAD.right;
@@ -210,15 +215,24 @@ export function TokenStream({
             );
           })}
 
-          <path d={areaPath} fill="url(#token-fill)" />
-          <path
+          <motion.path
+            d={areaPath}
+            fill="url(#token-fill)"
+            initial={animated ? { opacity: 0 } : false}
+            animate={{ opacity: drawn ? 1 : 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+          />
+          {/* pathLength lets motion handle dash maths, so the draw-in works at any width. */}
+          <motion.path
             d={linePath}
             fill="none"
             stroke="var(--color-accent)"
             strokeWidth={2.5}
             strokeLinecap="round"
             strokeLinejoin="round"
-            className={cx(animate && "motion-safe:[stroke-dasharray:4000] motion-safe:[animation:draw-in_1.6s_cubic-bezier(0.22,1,0.36,1)_forwards]")}
+            initial={animated ? { pathLength: 0 } : false}
+            animate={{ pathLength: drawn ? 1 : 0 }}
+            transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
           />
 
           {active ? (

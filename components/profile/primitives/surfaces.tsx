@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Reveal } from "@/components/profile/primitives/reveal";
 import { cx } from "@/lib/cx";
 
 export function GlassCard({
@@ -43,7 +44,7 @@ export function Section({
       aria-labelledby={`${id}-title`}
       className={cx("scroll-mt-16 py-12 sm:py-16", className)}
     >
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <Reveal className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-ink-faint text-micro mb-3 tracking-[0.22em] uppercase">
             {eyebrow}
@@ -58,8 +59,8 @@ export function Section({
           ) : null}
         </div>
         {aside}
-      </div>
-      {children}
+      </Reveal>
+      <Reveal delay={0.1}>{children}</Reveal>
     </section>
   );
 }

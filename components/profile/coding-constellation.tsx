@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useInView, useReducedMotion } from "motion/react";
 import type { Calendar, CalendarCell } from "@/lib/derive";
+import { useIsClient } from "@/lib/use-is-client";
 import {
   formatCompactNumber,
   formatDayLabel,
@@ -29,17 +31,19 @@ function cellLabel(cell: CalendarCell): string {
     : `${formatDayLabel(cell.date)}, no activity`;
 }
 
-export function CodingConstellation({
-  calendar,
-  /** Phase 2 staggers the cells in as a wave from oldest to newest. */
-  animate = false,
-}: {
-  calendar: Calendar;
-  animate?: boolean;
-}) {
+export function CodingConstellation({ calendar }: { calendar: Calendar }) {
   const [focus, setFocus] = useState({ week: calendar.weeks.length - 1, day: 6 });
   const [active, setActive] = useState<CalendarCell | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  const reduced = useReducedMotion();
+  const inView = useInView(gridRef, { once: true, margin: "-80px" });
+
+  // Cells are only hidden ahead of the wave once JS has taken over, so the
+  // server-rendered grid and the reduced-motion path both stay fully visible.
+  const armed = useIsClient() && !reduced;
+  const waving = armed && inView;
+  const hidden = armed && !inView;
 
   const totalWeeks = calendar.weeks.length;
   const columns = `repeat(${totalWeeks}, minmax(0, 1fr))`;
@@ -159,13 +163,13 @@ export function CodingConstellation({
                       className={cx(
                         "focus-visible:ring-ink aspect-square rounded-[3px] transition-transform duration-150 outline-none hover:scale-110 focus-visible:ring-2",
                         cell.inRange ? LEVEL_CLASS[cell.level] : "bg-white/[0.02]",
-                        animate &&
-                          "motion-safe:animate-[fade-in_0.45s_ease-out_backwards]",
+                        hidden && "opacity-0",
+                        waving && "animate-[fade-in_0.45s_ease-out_backwards]",
                       )}
                       style={
-                        animate
+                        waving
                           ? {
-                              animationDelay: `${weekIndex * 28 + dayIndex * 6}ms`,
+                              animationDelay: `${weekIndex * 26 + dayIndex * 8}ms`,
                             }
                           : undefined
                       }
