@@ -1,68 +1,229 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Profile = {
+  name: string;
+  username: string;
+  avatarUrl: string | null;
+  visibility: string | null;
+  badges: string[];
+  links: string[];
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+function isProfile(value: unknown): value is Profile {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const data = value as Record<string, unknown>;
+
+  return (
+    typeof data.name === "string" &&
+    typeof data.username === "string" &&
+    (data.avatarUrl === null || typeof data.avatarUrl === "string") &&
+    (data.visibility === null || typeof data.visibility === "string") &&
+    Array.isArray(data.badges) &&
+    data.badges.every((badge) => typeof badge === "string") &&
+    Array.isArray(data.links) &&
+    data.links.every((link) => typeof link === "string") &&
+    (data.createdAt === null || typeof data.createdAt === "string") &&
+    (data.updatedAt === null || typeof data.updatedAt === "string")
+  );
+}
+
+function formatDate(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatBadge(value: string): string {
+  return value
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function linkLabel(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    return hostname;
+  } catch {
+    return url;
+  }
+}
 
 export default function Home() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadProfile() {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ handle: "kdjadeja" }),
+          signal: controller.signal,
+        });
+
+        const data: unknown = await response.json();
+
+        if (!response.ok) {
+          const message =
+            data &&
+            typeof data === "object" &&
+            "error" in data &&
+            typeof data.error === "string"
+              ? data.error
+              : "Failed to load the profile.";
+          throw new Error(message);
+        }
+
+        if (!isProfile(data)) {
+          throw new Error("Failed to load the profile.");
+        }
+
+        setProfile(data);
+      } catch (cause) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setProfile(null);
+        setError(
+          cause instanceof Error ? cause.message : "Failed to load the profile.",
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadProfile();
+
+    return () => controller.abort();
+  }, []);
+
+  const createdAt = profile ? formatDate(profile.createdAt) : null;
+  const updatedAt = profile ? formatDate(profile.updatedAt) : null;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-50 px-6 py-16 font-sans dark:bg-black">
+      <main className="w-full max-w-md rounded-2xl border border-black/[.08] bg-white p-8 dark:border-white/[.145] dark:bg-zinc-950">
+        {isLoading ? (
+          <p className="text-zinc-500 dark:text-zinc-400">Loading profile…</p>
+        ) : error ? (
+          <p className="text-red-600 dark:text-red-400">{error}</p>
+        ) : profile ? (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-start gap-4">
+              {profile.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.avatarUrl}
+                  alt={`${profile.name} avatar`}
+                  width={72}
+                  height={72}
+                  className="h-[72px] w-[72px] rounded-full object-cover"
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-zinc-200 text-xl font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                >
+                  {profile.name.charAt(0)}
+                </div>
+              )}
+              <div className="flex min-w-0 flex-col gap-1">
+                <h1 className="text-3xl font-semibold tracking-tight text-black dark:text-zinc-50">
+                  {profile.name}
+                </h1>
+                <p className="text-lg text-zinc-600 dark:text-zinc-400">
+                  @{profile.username}
+                </p>
+                {profile.visibility ? (
+                  <p className="text-sm uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                    {profile.visibility}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            {profile.badges.length > 0 ? (
+              <ul className="flex flex-wrap gap-2">
+                {profile.badges.map((badge) => (
+                  <li
+                    key={badge}
+                    className="rounded-full bg-zinc-100 px-3 py-1 text-sm text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+                  >
+                    {formatBadge(badge)}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {profile.links.length > 0 ? (
+              <ul className="flex flex-col gap-2">
+                {profile.links.map((link) => (
+                  <li key={link}>
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-zinc-700 underline-offset-4 hover:underline dark:text-zinc-300"
+                    >
+                      {linkLabel(link)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {createdAt || updatedAt ? (
+              <dl className="flex flex-col gap-1 text-sm text-zinc-500 dark:text-zinc-400">
+                {createdAt ? (
+                  <div>
+                    <dt className="inline font-medium text-zinc-600 dark:text-zinc-300">
+                      Joined:{" "}
+                    </dt>
+                    <dd className="inline">{createdAt}</dd>
+                  </div>
+                ) : null}
+                {updatedAt ? (
+                  <div>
+                    <dt className="inline font-medium text-zinc-600 dark:text-zinc-300">
+                      Updated:{" "}
+                    </dt>
+                    <dd className="inline">{updatedAt}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            ) : null}
+          </div>
+        ) : null}
       </main>
     </div>
   );
