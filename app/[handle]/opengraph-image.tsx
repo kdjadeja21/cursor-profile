@@ -6,7 +6,7 @@ import {
   formatDuration,
 } from "@/lib/derive";
 
-export const alt = "Cursor ambassador profile";
+export const alt = "Cursor profile";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
