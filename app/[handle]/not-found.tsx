@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DEFAULT_HANDLE } from "@/lib/cursor-profile";
 
 export default function NotFound() {
   return (
@@ -15,10 +14,10 @@ export default function NotFound() {
         yet.
       </p>
       <Link
-        href={`/@${DEFAULT_HANDLE}`}
+        href="/"
         className="border-edge-strong text-small hover:border-accent hover:text-accent rounded-full border px-5 py-2 transition-colors"
       >
-        View a sample profile
+        Try another username
       </Link>
     </main>
   );

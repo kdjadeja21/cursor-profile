@@ -12,17 +12,20 @@ import { cx } from "@/lib/cx";
 export function Spotlight({
   children,
   className,
+  id,
 }: {
   children: ReactNode;
   className?: string;
+  id?: string;
 }) {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
 
   return (
     <div
+      id={id}
       ref={ref}
-      className={cx("group/spotlight relative", className)}
+      className={cx("group/spotlight relative scroll-mt-8", className)}
       onPointerMove={
         reduced
           ? undefined

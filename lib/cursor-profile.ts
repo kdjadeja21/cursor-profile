@@ -1,9 +1,10 @@
 import { cacheLife } from "next/cache";
+import { normalizeHandle } from "@/lib/handle";
+
+export { DEFAULT_HANDLE, normalizeHandle, parseHandleInput } from "@/lib/handle";
 
 const UPSTREAM_URL =
   "https://cursor.com/api/dashboard/get-public-profile-by-handle";
-
-export const DEFAULT_HANDLE = "kdjadeja";
 
 export type ProfileIdentity = {
   handle: string;
@@ -58,15 +59,6 @@ export type CursorProfile = {
 export type ProfileResult =
   | ({ ok: true } & CursorProfile)
   | { ok: false; reason: "not-found" | "unavailable" };
-
-export function normalizeHandle(value: unknown): string {
-  if (typeof value !== "string") {
-    return DEFAULT_HANDLE;
-  }
-
-  const handle = value.trim().replace(/^@/, "");
-  return handle.length > 0 ? handle : DEFAULT_HANDLE;
-}
 
 function asTrimmedString(value: unknown): string | null {
   if (typeof value !== "string") {

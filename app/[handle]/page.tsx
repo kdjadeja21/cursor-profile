@@ -13,6 +13,7 @@ import { AgentMix } from "@/components/profile/agent-mix";
 import { Milestones } from "@/components/profile/milestones";
 import { CelebrationBurst } from "@/components/profile/celebration-burst";
 import { SharePanel } from "@/components/profile/share-panel";
+import { JourneyScroller } from "@/components/profile/journey-scroller";
 import { Section } from "@/components/profile/primitives/surfaces";
 import { buildStoryCards } from "@/lib/story-cards";
 
@@ -96,6 +97,7 @@ export default async function ProfilePage({ params }: PageProps<"/[handle]">) {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-6 pb-24 sm:px-8">
+      <JourneyScroller />
       <HeroBand profile={profile} joinedDaysAgo={story.joinedDaysAgo} />
 
       {story.celebration ? (

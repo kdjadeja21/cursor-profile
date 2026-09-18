@@ -37,7 +37,7 @@ export function HeroBand({
   joinedDaysAgo: number | null;
 }) {
   return (
-    <Spotlight className="pt-16 pb-8 sm:pt-24">
+    <Spotlight id="hero" className="pt-16 pb-8 sm:pt-24">
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:gap-8">
         <Entrance delay={0.05} className="shrink-0">
           {profile.avatarUrl ? (
