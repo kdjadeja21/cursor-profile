@@ -141,7 +141,7 @@ export function HandleGate() {
             id={inputId}
             name="handle"
             type="text"
-            autoComplete="username"
+            autoComplete="off"
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
@@ -172,7 +172,7 @@ export function HandleGate() {
           role="alert"
           className={cx(
             "text-small mt-4 min-h-[1.5em]",
-            error ? "text-danger" : "text-ink-faint",
+            error ? "text-danger-text" : "text-ink-faint",
           )}
         >
           {error ? errorCopy(error) : "Public profiles only."}
