@@ -13,16 +13,24 @@ const STOPS = [
   "share",
 ] as const;
 
-/** Dwell long enough for each section's own entrance (wave, draw-in, count-up) to land. */
+/** Pause after the camera has settled, so each section can actually be read. */
 const DWELL_MS: Record<(typeof STOPS)[number], number> = {
-  hero: 3200,
-  constellation: 3600,
-  momentum: 2800,
-  tokens: 3400,
-  agents: 2800,
-  milestones: 2600,
-  share: 0,
+  hero: 3800,
+  constellation: 4200,
+  momentum: 3400,
+  tokens: 4000,
+  agents: 3400,
+  milestones: 3200,
+  share: 800,
 };
+
+const SCROLL_MIN_MS = 1600;
+const SCROLL_MAX_MS = 2800;
+const SCROLL_MS_PER_PX = 1.15;
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
 
 function wait(ms: number, signal: AbortSignal) {
   return new Promise<void>((resolve) => {
@@ -35,6 +43,66 @@ function wait(ms: number, signal: AbortSignal) {
       },
       { once: true },
     );
+  });
+}
+
+function targetTop(id: string): number | null {
+  const node = document.getElementById(id);
+  if (!node) {
+    return null;
+  }
+
+  const styles = getComputedStyle(node);
+  const margin = Number.parseFloat(styles.scrollMarginTop) || 0;
+  const maxY = Math.max(
+    0,
+    document.documentElement.scrollHeight - window.innerHeight,
+  );
+
+  return Math.min(maxY, Math.max(0, window.scrollY + node.getBoundingClientRect().top - margin));
+}
+
+/**
+ * Browser `behavior: "smooth"` caps out around half a second regardless of
+ * distance, which is why the recap felt like it was snapping. This eases the
+ * camera over a duration that scales with how far it has to travel.
+ */
+function scrollToY(
+  targetY: number,
+  signal: AbortSignal,
+): Promise<void> {
+  return new Promise((resolve) => {
+    const startY = window.scrollY;
+    const delta = targetY - startY;
+
+    if (Math.abs(delta) < 2) {
+      resolve();
+      return;
+    }
+
+    const duration = Math.min(
+      SCROLL_MAX_MS,
+      Math.max(SCROLL_MIN_MS, Math.abs(delta) * SCROLL_MS_PER_PX),
+    );
+    const started = performance.now();
+
+    const step = (now: number) => {
+      if (signal.aborted) {
+        resolve();
+        return;
+      }
+
+      const t = Math.min(1, (now - started) / duration);
+      window.scrollTo({ top: startY + delta * easeInOutCubic(t), behavior: "auto" });
+
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        resolve();
+      }
+    };
+
+    requestAnimationFrame(step);
   });
 }
 
@@ -57,6 +125,10 @@ export function JourneyScroller() {
     const controller = new AbortController();
     abortRef.current = controller;
     const { signal } = controller;
+    const root = document.documentElement;
+    const previousBehavior = root.style.scrollBehavior;
+    // `html { scroll-behavior: smooth }` would fight the rAF tween and snap it.
+    root.style.scrollBehavior = "auto";
 
     const handOver = () => {
       if (signal.aborted) {
@@ -91,9 +163,14 @@ export function JourneyScroller() {
           return;
         }
 
-        document
-          .getElementById(stop)
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const top = targetTop(stop);
+        if (top !== null) {
+          await scrollToY(top, signal);
+        }
+
+        if (signal.aborted) {
+          return;
+        }
 
         const dwell = DWELL_MS[stop];
         if (dwell > 0) {
@@ -111,6 +188,7 @@ export function JourneyScroller() {
     return () => {
       controller.abort();
       abortRef.current = null;
+      root.style.scrollBehavior = previousBehavior;
     };
   }, [reduced]);
 
