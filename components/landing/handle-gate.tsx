@@ -184,7 +184,8 @@ export function HandleGate({
               className={cx(
                 "glass mt-14 flex w-full max-w-3xl items-center gap-2 rounded-full py-2 pr-2 pl-7 transition-[box-shadow,border-color] duration-500",
                 focused && !error && "border-accent/60 shadow-glow",
-                error && "border-danger/70 shadow-[0_0_50px_-10px_var(--color-danger)]",
+                error &&
+                  "border-danger bg-danger/10 shadow-[0_0_70px_-8px_var(--color-danger),inset_0_0_40px_-20px_var(--color-danger)]",
                 error && !reduced && "animate-[shake_0.5s_ease-in-out]",
               )}
             >

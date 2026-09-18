@@ -53,24 +53,25 @@ function Avatar({ profile }: { profile: ProfileIdentity }) {
 
       <div
         aria-hidden="true"
-        className="orbit absolute inset-[-8%] rounded-full"
+        className="orbit absolute inset-[-9%] rounded-full"
         style={{
           background:
-            "conic-gradient(from 0deg, transparent 0deg, var(--color-accent) 80deg, var(--color-ember) 120deg, transparent 200deg)",
-          mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px))",
+            "conic-gradient(from 0deg, transparent 0deg, var(--color-accent) 70deg, var(--color-ember) 120deg, #fff3e0 140deg, transparent 220deg)",
+          mask: "radial-gradient(farthest-side, transparent calc(100% - 6px), black calc(100% - 5px))",
           WebkitMask:
-            "radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px))",
+            "radial-gradient(farthest-side, transparent calc(100% - 6px), black calc(100% - 5px))",
+          filter: "drop-shadow(0 0 10px var(--color-accent))",
         }}
       />
       <div
         aria-hidden="true"
-        className="orbit-reverse absolute inset-[-16%] rounded-full opacity-60"
+        className="orbit-reverse absolute inset-[-18%] rounded-full opacity-80"
         style={{
           background:
-            "conic-gradient(from 180deg, transparent 0deg, var(--color-accent-soft) 40deg, transparent 110deg)",
-          mask: "radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 1px))",
+            "conic-gradient(from 180deg, transparent 0deg, var(--color-accent-soft) 40deg, var(--color-ember) 70deg, transparent 130deg)",
+          mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px))",
           WebkitMask:
-            "radial-gradient(farthest-side, transparent calc(100% - 2px), black calc(100% - 1px))",
+            "radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px))",
         }}
       />
 

@@ -44,17 +44,20 @@ export function AuroraBackdrop() {
         {BLOBS.map((blob) => (
           <div
             key={blob.className}
-            className={`absolute rounded-full blur-[90px] ${blob.className}`}
+            className={`absolute rounded-full ${blob.className}`}
             style={{
-              background: `radial-gradient(closest-side, color-mix(in srgb, ${blob.colour} ${Math.round(blob.alpha * 100)}%, transparent), transparent)`,
+              // Soft falloff comes from the gradient itself; a filter blur on a
+              // viewport-sized element is far too costly for a projector PC.
+              background: `radial-gradient(closest-side, color-mix(in srgb, ${blob.colour} ${Math.round(blob.alpha * 100)}%, transparent) 0%, color-mix(in srgb, ${blob.colour} ${Math.round(blob.alpha * 45)}%, transparent) 45%, transparent 100%)`,
               animationDelay: blob.delay,
             }}
           />
         ))}
       </div>
 
-      {/* Grain keeps the huge soft gradients from banding on projectors. */}
-      <svg className="absolute inset-[-10%] h-[120%] w-[120%] opacity-[0.07] mix-blend-overlay grain">
+      {/* Grain keeps the huge soft gradients from banding on projectors. Static: an
+          animated feTurbulence over the whole screen would re-rasterise every frame. */}
+      <svg className="absolute inset-0 h-full w-full opacity-[0.07] mix-blend-overlay">
         <filter id="aurora-grain">
           <feTurbulence
             type="fractalNoise"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { StoryCard } from "@/lib/story-cards";
 import { MagneticButton } from "@/components/fx/magnetic";
@@ -93,7 +94,9 @@ export default function StoryMode({
     }
   };
 
-  return (
+  // Portaled to <body>: the scenes sit inside a transformed wrapper, which would
+  // otherwise become the containing block and shrink this "fixed" overlay to a card.
+  return createPortal(
     <motion.div
       ref={dialogRef}
       role="dialog"
@@ -153,13 +156,14 @@ export default function StoryMode({
         </div>
 
         <div className="relative flex flex-1 items-center justify-center">
-          <AnimatePresence mode="wait">
+          {/* popLayout lets the next card rise in while the last one is still leaving. */}
+          <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={card.id}
               initial={reduced ? false : { opacity: 0, y: 40, scale: 0.92, filter: "blur(14px)" }}
               animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
               exit={reduced ? undefined : { opacity: 0, y: -40, scale: 1.04, filter: "blur(14px)" }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               className="w-full text-center"
             >
               <p className="text-accent text-small mb-8 tracking-[0.32em] uppercase">
@@ -229,6 +233,7 @@ export default function StoryMode({
           </button>
         </div>
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
