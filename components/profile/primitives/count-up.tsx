@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { animate, useReducedMotion } from "motion/react";
+import { animate, motion, useReducedMotion } from "motion/react";
 import {
   formatCompactNumber,
   formatDuration,
   formatFullNumber,
 } from "@/lib/derive";
+import { cx } from "@/lib/cx";
 
 export type CountKind = "compact" | "duration" | "integer";
 
@@ -26,23 +27,35 @@ function format(value: number, kind: CountKind): string {
   }
 }
 
+/**
+ * Counts from zero to the value once `start` flips true, then lands with a spring
+ * punch and a glow flash so the settled number is the moment the eye is drawn to.
+ */
 export function CountUp({
   amount,
   kind,
+  start = true,
   delay = 0,
   duration = 1.4,
+  punch = true,
+  className,
 }: {
   amount: number;
   kind: CountKind;
+  /** Hold at zero until the scene is on screen. */
+  start?: boolean;
   delay?: number;
   duration?: number;
+  /** Scale-and-glow flash on completion. */
+  punch?: boolean;
+  className?: string;
 }) {
   const reduced = useReducedMotion();
   const [value, setValue] = useState(0);
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
-    if (reduced) {
+    if (reduced || !start) {
       return;
     }
 
@@ -55,11 +68,21 @@ export function CountUp({
     });
 
     return () => controls.stop();
-  }, [amount, delay, duration, reduced]);
+  }, [amount, delay, duration, reduced, start]);
+
+  const shown = reduced ? amount : value;
 
   return (
-    <>
-      <span aria-hidden="true">{format(reduced ? amount : value, kind)}</span>
+    <motion.span
+      className={cx("inline-block will-change-transform", className)}
+      animate={
+        punch && settled && !reduced
+          ? { scale: [1, 1.08, 1], filter: ["brightness(1)", "brightness(1.6)", "brightness(1)"] }
+          : undefined
+      }
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <span aria-hidden="true">{format(shown, kind)}</span>
       {/*
         The visible digits churn every frame, so they stay hidden from assistive tech
         and the settled value is announced exactly once instead of as a stream.
@@ -67,6 +90,6 @@ export function CountUp({
       <span className="sr-only" aria-live="polite">
         {reduced || settled ? format(amount, kind) : ""}
       </span>
-    </>
+    </motion.span>
   );
 }

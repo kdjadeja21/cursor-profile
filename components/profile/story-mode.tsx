@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { StoryCard } from "@/lib/story-cards";
+import { MagneticButton } from "@/components/fx/magnetic";
+import { SplitText } from "@/components/fx/split-text";
 import { cx } from "@/lib/cx";
 
-const CARD_MS = 4200;
+const CARD_MS = 4600;
 
 export default function StoryMode({
   cards,
@@ -60,6 +62,8 @@ export default function StoryMode({
   }, [go, index, isLast, reduced]);
 
   useEffect(() => {
+    const SWALLOWED = ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"];
+
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
@@ -67,11 +71,17 @@ export default function StoryMode({
         go(1);
       } else if (event.key === "ArrowLeft") {
         go(-1);
+      } else if (!SWALLOWED.includes(event.key)) {
+        return;
       }
+
+      // The scene director also listens on window; the story owns paging while open.
+      event.preventDefault();
+      event.stopPropagation();
     };
 
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, [go, onClose]);
 
   const copyLink = async () => {
@@ -84,16 +94,28 @@ export default function StoryMode({
   };
 
   return (
-    <div
+    <motion.div
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`${displayName} story recap`}
       tabIndex={-1}
-      className="bg-surface/95 fixed inset-0 z-50 flex flex-col backdrop-blur-xl outline-none"
+      initial={reduced ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="bg-surface/85 fixed inset-0 z-50 flex flex-col backdrop-blur-2xl outline-none"
     >
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-6">
-        <div className="flex gap-1.5" aria-hidden="true">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(60% 50% at 50% 50%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 75%)",
+        }}
+      />
+
+      <div className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-8">
+        <div className="flex gap-2" aria-hidden="true">
           {cards.map((entry, position) => {
             // The active bar fills across the card's own dwell time, so the bar doubles
             // as the countdown to the next card.
@@ -106,7 +128,7 @@ export default function StoryMode({
               >
                 <div
                   className={cx(
-                    "bg-accent h-full origin-left rounded-full",
+                    "bg-accent h-full origin-left rounded-full shadow-[0_0_10px_var(--color-accent)]",
                     ticking && "animate-[progress-fill_linear_forwards]",
                     !ticking && (position <= index ? "scale-x-100" : "scale-x-0"),
                   )}
@@ -117,14 +139,14 @@ export default function StoryMode({
           })}
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-ink-faint text-micro tracking-[0.22em] uppercase">
+        <div className="mt-5 flex items-center justify-between">
+          <p className="text-ink-faint text-small tracking-[0.3em] uppercase">
             {displayName}
           </p>
           <button
             type="button"
             onClick={onClose}
-            className="text-ink-muted hover:text-ink focus-visible:ring-ink text-small rounded-full px-3 py-1 outline-none focus-visible:ring-2"
+            className="glass text-ink-muted hover:text-ink focus-visible:ring-ink text-small rounded-full px-4 py-2 outline-none focus-visible:ring-2"
           >
             Close
           </button>
@@ -134,46 +156,52 @@ export default function StoryMode({
           <AnimatePresence mode="wait">
             <motion.div
               key={card.id}
-              initial={reduced ? false : { opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduced ? undefined : { opacity: 0, y: -18 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              initial={reduced ? false : { opacity: 0, y: 40, scale: 0.92, filter: "blur(14px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              exit={reduced ? undefined : { opacity: 0, y: -40, scale: 1.04, filter: "blur(14px)" }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="w-full text-center"
             >
-              <p className="text-ink-faint text-micro mb-6 tracking-[0.22em] uppercase">
+              <p className="text-accent text-small mb-8 tracking-[0.32em] uppercase">
                 {card.eyebrow}
               </p>
               <p
                 className={cx(
-                  "tabular",
-                  card.isFinale
-                    ? "text-display text-ink"
-                    : "text-hero text-accent",
+                  "tabular drop-glow font-extrabold",
+                  card.isFinale ? "text-hero" : "text-giant",
                 )}
               >
-                {card.value}
+                <SplitText
+                  text={card.value}
+                  by="chars"
+                  delay={0.15}
+                  stagger={0.045}
+                  unitClassName={card.isFinale ? "gradient-ink" : "gradient-accent"}
+                />
               </p>
-              <p className="text-ink-muted text-lead mx-auto mt-6 max-w-md">
+              <motion.p
+                initial={reduced ? false : { opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.7 }}
+                className="text-ink-muted text-title mx-auto mt-10 max-w-2xl font-normal"
+              >
                 {card.caption}
-              </p>
+              </motion.p>
 
               {card.isFinale ? (
-                <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    onClick={copyLink}
-                    className="bg-accent text-surface focus-visible:ring-ink text-small rounded-full px-5 py-2.5 transition-transform outline-none hover:scale-[1.03] focus-visible:ring-2"
-                  >
+                <motion.div
+                  initial={reduced ? false : { opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 1 }}
+                  className="mt-12 flex flex-wrap items-center justify-center gap-4"
+                >
+                  <MagneticButton size="lg" onClick={copyLink}>
                     {copied ? "Link copied" : "Copy link"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIndex(0)}
-                    className="border-edge-strong text-ink-muted hover:text-ink focus-visible:ring-ink text-small rounded-full border px-5 py-2.5 outline-none focus-visible:ring-2"
-                  >
+                  </MagneticButton>
+                  <MagneticButton size="lg" variant="ghost" onClick={() => setIndex(0)}>
                     Replay
-                  </button>
-                </div>
+                  </MagneticButton>
+                </motion.div>
               ) : null}
             </motion.div>
           </AnimatePresence>
@@ -184,23 +212,23 @@ export default function StoryMode({
             type="button"
             onClick={() => go(-1)}
             disabled={index === 0}
-            className="text-ink-muted hover:text-ink focus-visible:ring-ink text-small rounded-full px-4 py-2 outline-none focus-visible:ring-2 disabled:opacity-30"
+            className="text-ink-muted hover:text-ink focus-visible:ring-ink text-base rounded-full px-5 py-2 outline-none focus-visible:ring-2 disabled:opacity-30"
           >
-            Back
+            ← Back
           </button>
-          <p className="text-ink-faint text-micro tabular">
+          <p className="text-ink-faint text-small tabular tracking-[0.2em]">
             {index + 1} / {cards.length}
           </p>
           <button
             type="button"
             onClick={() => go(1)}
             disabled={isLast}
-            className="text-ink-muted hover:text-ink focus-visible:ring-ink text-small rounded-full px-4 py-2 outline-none focus-visible:ring-2 disabled:opacity-30"
+            className="text-ink-muted hover:text-ink focus-visible:ring-ink text-base rounded-full px-5 py-2 outline-none focus-visible:ring-2 disabled:opacity-30"
           >
-            Next
+            Next →
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,18 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useInView, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { Calendar, CalendarCell } from "@/lib/derive";
 import { useIsClient } from "@/lib/use-is-client";
 import { formatCompactNumber, formatDayLabel } from "@/lib/derive";
+import { SceneItem, useScene } from "@/components/profile/scene";
 import { cx } from "@/lib/cx";
 
 const LEVEL_CLASS: Record<CalendarCell["level"], string> = {
-  0: "bg-white/[0.04]",
-  1: "bg-accent/20",
-  2: "bg-accent/40",
-  3: "bg-accent/65",
-  4: "bg-accent shadow-[0_0_12px_-2px_var(--color-accent)]",
+  0: "bg-white/[0.05]",
+  1: "bg-accent/25",
+  2: "bg-accent/50",
+  3: "bg-accent/80 shadow-[0_0_10px_-2px_var(--color-accent)]",
+  4: "bg-ember shadow-[0_0_18px_-2px_var(--color-ember)]",
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -33,13 +34,13 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
   const gridRef = useRef<HTMLDivElement>(null);
 
   const reduced = useReducedMotion();
-  const inView = useInView(gridRef, { once: true, margin: "-80px" });
+  const { ready } = useScene();
 
   // Cells are only hidden ahead of the wave once JS has taken over, so the
   // server-rendered grid and the reduced-motion path both stay fully visible.
   const armed = useIsClient() && !reduced;
-  const waving = armed && inView;
-  const hidden = armed && !inView;
+  const waving = armed && ready;
+  const hidden = armed && !ready;
 
   const totalWeeks = calendar.weeks.length;
   const columns = `repeat(${totalWeeks}, minmax(0, 1fr))`;
@@ -85,6 +86,7 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
       }
 
       event.preventDefault();
+      event.stopPropagation();
       moveFocus(move[0], move[1]);
     },
     [moveFocus],
@@ -98,122 +100,115 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
     [calendar.activeDays, calendar.trackedDays],
   );
 
-  return (
-    <div>
-      <div className="overflow-x-auto pb-2">
-        <div className="flex min-w-[520px] gap-2">
-          <div
-            aria-hidden="true"
-            className="text-ink-faint text-micro grid shrink-0 grid-rows-7 gap-[3px] pt-5"
-          >
-            {WEEKDAYS.map((day, index) => (
-              <div key={day} className="flex items-center pr-1 leading-none">
-                {index % 2 === 1 ? day : ""}
-              </div>
-            ))}
-          </div>
+  const peakDate = calendar.busiestDay?.date;
 
-          <div className="min-w-0 flex-1">
+  return (
+    <div className="grid gap-10 lg:grid-cols-[1fr_minmax(260px,320px)] lg:items-end lg:gap-16">
+      <SceneItem delay={0.3} className="glass rounded-3xl p-6 sm:p-8 lg:p-10">
+        <div className="overflow-x-auto pb-2">
+          <div className="flex min-w-[560px] gap-3">
             <div
               aria-hidden="true"
-              className="text-ink-faint text-micro mb-1 grid h-4 gap-[3px]"
-              style={{ gridTemplateColumns: columns }}
+              className="text-ink-faint text-micro grid shrink-0 grid-rows-7 gap-[5px] pt-6"
             >
-              {calendar.weeks.map((_, weekIndex) => {
-                const month = calendar.months.find(
-                  (entry) => entry.weekIndex === weekIndex,
-                );
-
-                return (
-                  <div key={weekIndex} className="relative">
-                    {month ? (
-                      <span className="absolute left-0 whitespace-nowrap">
-                        {month.label}
-                      </span>
-                    ) : null}
-                  </div>
-                );
-              })}
+              {WEEKDAYS.map((day, index) => (
+                <div key={day} className="flex items-center pr-1 leading-none">
+                  {index % 2 === 1 ? day : ""}
+                </div>
+              ))}
             </div>
 
-            <div
-              ref={gridRef}
-              role="grid"
-              aria-label="Daily token activity"
-              onKeyDown={onKeyDown}
-              onMouseLeave={() => setActive(null)}
-              className="grid gap-[3px]"
-              style={{ gridTemplateColumns: columns }}
-            >
-              {/* Row-major so the grid can size its columns fluidly to the container. */}
-              {WEEKDAYS.map((_, dayIndex) =>
-                calendar.weeks.map((week, weekIndex) => {
-                  const cell = week[dayIndex];
-                  const isFocusTarget =
-                    focus.week === weekIndex && focus.day === dayIndex;
+            <div className="min-w-0 flex-1">
+              <div
+                aria-hidden="true"
+                className="text-ink-faint text-micro mb-2 grid h-4 gap-[5px] tracking-[0.12em] uppercase"
+                style={{ gridTemplateColumns: columns }}
+              >
+                {calendar.weeks.map((_, weekIndex) => {
+                  const month = calendar.months.find(
+                    (entry) => entry.weekIndex === weekIndex,
+                  );
 
                   return (
-                    <div
-                      key={cell.date}
-                      role="gridcell"
-                      data-cell={`${weekIndex}-${dayIndex}`}
-                      tabIndex={isFocusTarget ? 0 : -1}
-                      aria-label={cellLabel(cell)}
-                      onFocus={() => {
-                        setFocus({ week: weekIndex, day: dayIndex });
-                        setActive(cell);
-                      }}
-                      onBlur={() => setActive(null)}
-                      onMouseEnter={() => setActive(cell)}
-                      className={cx(
-                        "focus-visible:ring-ink aspect-square rounded-[3px] transition-transform duration-150 outline-none hover:scale-110 focus-visible:ring-2",
-                        cell.inRange ? LEVEL_CLASS[cell.level] : "bg-white/[0.02]",
-                        hidden && "opacity-0",
-                        waving && "animate-[fade-in_0.45s_ease-out_backwards]",
-                      )}
-                      style={
-                        waving
-                          ? {
-                              animationDelay: `${weekIndex * 26 + dayIndex * 8}ms`,
-                            }
-                          : undefined
-                      }
-                    />
+                    <div key={weekIndex} className="relative">
+                      {month ? (
+                        <span className="absolute left-0 whitespace-nowrap">
+                          {month.label}
+                        </span>
+                      ) : null}
+                    </div>
                   );
-                }),
-              )}
+                })}
+              </div>
+
+              <div
+                ref={gridRef}
+                role="grid"
+                aria-label="Daily token activity"
+                onKeyDown={onKeyDown}
+                onMouseLeave={() => setActive(null)}
+                className="grid gap-[5px]"
+                style={{ gridTemplateColumns: columns }}
+              >
+                {/* Row-major so the grid can size its columns fluidly to the container. */}
+                {WEEKDAYS.map((_, dayIndex) =>
+                  calendar.weeks.map((week, weekIndex) => {
+                    const cell = week[dayIndex];
+                    const isFocusTarget =
+                      focus.week === weekIndex && focus.day === dayIndex;
+                    const isPeak = cell.inRange && cell.date === peakDate;
+
+                    return (
+                      <div
+                        key={cell.date}
+                        role="gridcell"
+                        data-cell={`${weekIndex}-${dayIndex}`}
+                        tabIndex={isFocusTarget ? 0 : -1}
+                        aria-label={cellLabel(cell)}
+                        onFocus={() => {
+                          setFocus({ week: weekIndex, day: dayIndex });
+                          setActive(cell);
+                        }}
+                        onBlur={() => setActive(null)}
+                        onMouseEnter={() => setActive(cell)}
+                        className={cx(
+                          "focus-visible:ring-ink relative aspect-square rounded-[4px] transition-transform duration-150 outline-none hover:z-10 hover:scale-125 focus-visible:ring-2",
+                          cell.inRange ? LEVEL_CLASS[cell.level] : "bg-white/[0.02]",
+                          hidden && "opacity-0",
+                          waving && "animate-[fade-in_0.5s_ease-out_backwards]",
+                        )}
+                        style={
+                          waving
+                            ? { animationDelay: `${300 + weekIndex * 32 + dayIndex * 10}ms` }
+                            : undefined
+                        }
+                      >
+                        {cell.inRange && cell.level === 4 && !reduced ? (
+                          // Twinkles fall out of sync so the grid shimmers rather than blinks.
+                          <span
+                            aria-hidden="true"
+                            className="twinkle bg-ember absolute inset-0 rounded-[4px]"
+                            style={{ animationDelay: `${(weekIndex * 7 + dayIndex) % 11 * 0.2}s` }}
+                          />
+                        ) : null}
+                        {isPeak && !reduced ? (
+                          <span
+                            aria-hidden="true"
+                            className="pulse-ring border-ember absolute inset-[-3px] rounded-full border-2"
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  }),
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-        <p
-          aria-live="polite"
-          className="text-ink-muted text-small min-h-[1.5em]"
-        >
-          {active ? (
-            <>
-              <span className="text-ink tabular">
-                {active.inRange && active.tokens > 0
-                  ? `${formatCompactNumber(active.tokens)} tokens`
-                  : "No activity"}
-              </span>
-              <span className="text-ink-faint"> · {formatDayLabel(active.date)}</span>
-            </>
-          ) : calendar.activeDays === 0 ? (
-            "Nothing tracked yet — the first day lands here."
-          ) : (
-            <>
-              {calendar.activeDays} active days of {calendar.trackedDays} tracked
-              <span className="text-ink-faint"> · {consistency}% consistency</span>
-            </>
-          )}
-        </p>
 
         <div
           aria-hidden="true"
-          className="text-ink-faint text-micro flex items-center gap-2"
+          className="text-ink-faint text-micro mt-6 flex items-center gap-2 tracking-[0.12em] uppercase"
         >
           <span>Less</span>
           {([0, 1, 2, 3, 4] as const).map((level) => (
@@ -223,13 +218,71 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
             />
           ))}
           <span>More</span>
-          {calendar.busiestDay ? (
-            <span className="text-ink-faint/70 ml-2">
-              peak {formatCompactNumber(calendar.busiestDay.tokens)} on{" "}
-              {formatDayLabel(calendar.busiestDay.date)}
-            </span>
-          ) : null}
         </div>
+      </SceneItem>
+
+      <div className="flex flex-col gap-4">
+        <SceneItem delay={0.6} from="right">
+          <div className="glass relative min-h-[160px] overflow-hidden rounded-3xl p-7">
+            <p className="text-ink-faint text-small mb-3 tracking-[0.3em] uppercase">
+              {active ? "Selected day" : "Consistency"}
+            </p>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={active ? active.date : "summary"}
+                initial={reduced ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduced ? undefined : { opacity: 0, y: -10 }}
+                transition={{ duration: 0.22 }}
+                aria-live="polite"
+              >
+                {active ? (
+                  <>
+                    <p className="text-display text-ink tabular font-bold">
+                      {active.inRange && active.tokens > 0
+                        ? formatCompactNumber(active.tokens)
+                        : "0"}
+                      <span className="text-ink-faint text-lead ml-2 font-normal">tokens</span>
+                    </p>
+                    <p className="text-ink-muted text-base mt-1">
+                      {formatDayLabel(active.date)}
+                    </p>
+                  </>
+                ) : calendar.activeDays === 0 ? (
+                  <p className="text-ink-muted text-lead">
+                    Nothing tracked yet — the first day lands here.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-display text-ink tabular font-bold">
+                      {consistency}
+                      <span className="text-accent">%</span>
+                    </p>
+                    <p className="text-ink-muted text-base mt-1">
+                      {calendar.activeDays} active of {calendar.trackedDays} tracked days
+                    </p>
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </SceneItem>
+
+        {calendar.busiestDay ? (
+          <SceneItem delay={0.75} from="right">
+            <div className="glass border-ember/30 rounded-3xl p-7">
+              <p className="text-ink-faint text-small mb-3 tracking-[0.3em] uppercase">
+                Peak day
+              </p>
+              <p className="text-heading text-ember tabular font-bold">
+                {formatCompactNumber(calendar.busiestDay.tokens)}
+              </p>
+              <p className="text-ink-muted text-base mt-1">
+                {formatDayLabel(calendar.busiestDay.date)}
+              </p>
+            </div>
+          </SceneItem>
+        ) : null}
       </div>
     </div>
   );
