@@ -60,7 +60,7 @@ export function SplitText({
       const caretNode = root.querySelector<HTMLElement>("[data-split-caret]");
 
       if (!start) {
-        gsap.set(units, { yPercent: 40, opacity: 0 });
+        gsap.set(units, { y: "0.4em", opacity: 0 });
         if (caretNode) {
           gsap.set(caretNode, { opacity: 0 });
         }
@@ -69,15 +69,16 @@ export function SplitText({
 
       gsap.fromTo(
         units,
-        { yPercent: 40, opacity: 0 },
+        { y: "0.4em", opacity: 0 },
         {
-          yPercent: 0,
+          y: 0,
           opacity: 1,
           duration,
           delay,
           stagger: step,
           ease: "expo.out",
           overwrite: "auto",
+          force3D: false,
         },
       );
 
@@ -110,16 +111,16 @@ export function SplitText({
           <Fragment key={wordIndex}>
             <span
               aria-hidden="true"
-              className={cx(
-                "inline-block overflow-visible whitespace-nowrap",
-                unitClassName,
-              )}
+              className="inline-block overflow-visible whitespace-nowrap"
             >
               {units.map((unit, index) => (
                 <span
                   key={index}
                   data-split-unit=""
-                  className="inline-block overflow-visible py-[0.12em] will-change-transform"
+                  className={cx(
+                    "inline-block overflow-visible py-[0.14em] will-change-transform",
+                    unitClassName,
+                  )}
                 >
                   {unit}
                 </span>

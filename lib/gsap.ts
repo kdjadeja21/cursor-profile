@@ -3,10 +3,9 @@
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
-import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 
-gsap.registerPlugin(useGSAP, ScrollToPlugin, MotionPathPlugin);
-gsap.config({ force3D: true, nullTargetWarn: false });
+gsap.registerPlugin(useGSAP, MotionPathPlugin);
+gsap.config({ force3D: false, nullTargetWarn: false });
 gsap.defaults({ ease: "expo.out" });
 gsap.ticker.lagSmoothing(500, 33);
 

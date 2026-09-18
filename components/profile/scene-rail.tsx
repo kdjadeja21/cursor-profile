@@ -12,8 +12,9 @@ export function scrollToScene(id: string) {
     return;
   }
 
-  gsap.to(window, {
-    scrollTo: { y: target, autoKill: true },
+  const scroller = document.scrollingElement ?? document.documentElement;
+  gsap.to(scroller, {
+    scrollTop: scroller.scrollTop + target.getBoundingClientRect().top,
     duration: 0.85,
     ease: EASE_IN_OUT,
     overwrite: true,

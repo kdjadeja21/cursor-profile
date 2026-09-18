@@ -25,6 +25,7 @@ export function MagneticButton({
   variant = "primary",
   size = "md",
   className,
+  type = "button",
   ...rest
 }: {
   children: ReactNode;
@@ -53,7 +54,7 @@ export function MagneticButton({
   return (
     <button
       ref={ref}
-      type="button"
+      type={type}
       {...rest}
       onPointerMove={(event) => {
         rest.onPointerMove?.(event);

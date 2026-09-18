@@ -153,7 +153,7 @@ export default function StoryMode({
       aria-modal="true"
       aria-label={`${displayName} story recap`}
       tabIndex={-1}
-      className="bg-surface/85 fixed inset-0 z-50 flex flex-col outline-none"
+      className="bg-surface/95 fixed inset-0 z-50 flex flex-col outline-none"
     >
       <div
         aria-hidden="true"
