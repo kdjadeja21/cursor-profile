@@ -23,7 +23,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${displayFont.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={`${displayFont.variable} h-full antialiased`}
+    >
       <body className="bg-surface text-ink flex min-h-full flex-col">
         {/* Persistent across routes so gate -> loading -> profile share one sky. */}
         <AuroraBackdrop />

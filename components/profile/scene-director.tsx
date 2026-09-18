@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { SceneDefinition } from "@/components/profile/scene";
+import { useIsClient } from "@/lib/use-is-client";
 
 /**
  * Plays the scenes as a paced recap so nobody has to touch the screen. Any wheel,
@@ -23,10 +24,13 @@ export function SceneDirector({
   onJump: (index: number) => void;
 }) {
   const reduced = useReducedMotion();
+  // The server never knows the motion preference, so the control stays unrendered
+  // until after hydration to keep the markup identical on both sides.
+  const isClient = useIsClient();
 
   // Auto-advance is a default, never a trap: it only arms when motion is allowed,
   // and it stops on its own at the final scene.
-  const armed = reduced === false;
+  const armed = isClient && reduced === false;
   const isLast = activeIndex >= scenes.length - 1;
   const playing = armed && !paused && !isLast;
   const dwell = scenes[activeIndex]?.dwellMs ?? 0;

@@ -60,9 +60,11 @@ export function Scene({
 }) {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
-  const active = useInView(ref, { amount: 0.5 });
-  // Two observers rather than a latched state: `ready` must never flip back.
-  const ready = useInView(ref, { amount: 0.5, once: true });
+  // Both observers watch a band around the viewport centre rather than a visible
+  // ratio, so a scene taller than a small window still registers as it arrives.
+  const active = useInView(ref, { margin: "-45% 0px -45% 0px" });
+  // A separate observer rather than a latched state: `ready` must never flip back.
+  const ready = useInView(ref, { margin: "-30% 0px -30% 0px", once: true });
 
   useEffect(() => {
     if (active) {
@@ -89,7 +91,7 @@ export function Scene({
         aria-labelledby={title ? `${id}-title` : undefined}
         data-scene-index={index}
         className={cx(
-          "relative flex min-h-[100svh] w-full snap-start snap-always flex-col justify-center px-6 py-20 sm:px-12 lg:px-20",
+          "relative flex min-h-[100svh] w-full snap-start flex-col justify-center px-6 py-16 sm:px-12 lg:px-20",
           className,
         )}
       >
