@@ -1,15 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
-import { useEffect, useId, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
-import { parseHandleInput } from "@/lib/handle";
+import {
+  playProfile,
+  type GateError,
+  type GateState,
+} from "@/app/play-profile";
 import { cx } from "@/lib/cx";
-
-const HANDLE_PATTERN = /^[a-zA-Z0-9._-]{1,39}$/;
-
-type GateError = "empty" | "invalid" | "not-found" | "unavailable";
 
 function errorCopy(kind: GateError): string {
   switch (kind) {
@@ -28,76 +27,31 @@ function errorCopy(kind: GateError): string {
   }
 }
 
-export function HandleGate() {
-  const router = useRouter();
+export function HandleGate({
+  initialHandle = "",
+  initialError = null,
+}: {
+  initialHandle?: string;
+  initialError?: GateError | null;
+}) {
   const reduced = useReducedMotion();
   const inputId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const [value, setValue] = useState("");
-  const [error, setError] = useState<GateError | null>(null);
-  const [shaking, setShaking] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [state, formAction, pending] = useActionState<GateState, FormData>(
+    playProfile,
+    { error: initialError },
+  );
+  const [dismissed, setDismissed] = useState(false);
+  const error = pending || dismissed ? null : state.error;
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const shake = () => {
-    if (reduced) {
-      return;
-    }
-
-    setShaking(false);
-    requestAnimationFrame(() => setShaking(true));
-  };
-
-  const fail = (kind: GateError) => {
-    setError(kind);
-    setPending(false);
-    shake();
-    inputRef.current?.focus();
-  };
-
-  const onSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    const handle = parseHandleInput(value);
-    if (!handle) {
-      fail("empty");
-      return;
-    }
-
-    if (!HANDLE_PATTERN.test(handle)) {
-      fail("invalid");
-      return;
-    }
-
-    setPending(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle }),
-      });
-
-      if (response.status === 404) {
-        fail("not-found");
-        return;
-      }
-
-      if (!response.ok) {
-        fail("unavailable");
-        return;
-      }
-
-      router.push(`/@${handle}`);
-    } catch {
-      fail("unavailable");
-    }
+  const submitAction = (formData: FormData) => {
+    setDismissed(false);
+    return formAction(formData);
   };
 
   return (
@@ -112,7 +66,7 @@ export function HandleGate() {
       />
 
       <form
-        onSubmit={onSubmit}
+        action={submitAction}
         className="relative flex w-full max-w-xl flex-col items-center text-center"
       >
         <Image
@@ -129,9 +83,8 @@ export function HandleGate() {
           className={cx(
             "border-edge-strong bg-surface-raised mt-10 flex w-full items-center rounded-2xl border px-4 py-2 has-[:focus-visible]:border-accent/70",
             error && "border-danger/70",
-            shaking && "animate-[shake_0.46s_ease-in-out]",
+            error && !reduced && "animate-[shake_0.46s_ease-in-out]",
           )}
-          onAnimationEnd={() => setShaking(false)}
         >
           <span aria-hidden="true" className="text-ink-faint text-title pr-1">
             @
@@ -149,14 +102,13 @@ export function HandleGate() {
             autoCorrect="off"
             spellCheck={false}
             placeholder="kdjadeja"
-            value={value}
+            defaultValue={initialHandle}
             disabled={pending}
             aria-invalid={error !== null}
             aria-describedby={error ? errorId : undefined}
-            onChange={(event) => {
-              setValue(event.target.value);
+            onChange={() => {
               if (error) {
-                setError(null);
+                setDismissed(true);
               }
             }}
             className="text-title text-ink placeholder:text-ink-faint min-w-0 flex-1 bg-transparent py-3 outline-none"

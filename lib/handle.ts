@@ -1,4 +1,5 @@
 export const DEFAULT_HANDLE = "kdjadeja";
+export const HANDLE_PATTERN = /^[a-zA-Z0-9._-]{1,39}$/;
 
 /** Empty input stays empty. `normalizeHandle` still falls back to the sample profile
  *  so the API route can keep serving a default when no handle is sent. */
