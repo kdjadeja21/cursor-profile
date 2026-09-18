@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildCalendar } from "./derive.ts";
+import { buildCalendar, formatCompactNumber } from "./derive.ts";
 import { resolveTokens, tokenChartY } from "./tokens.ts";
 
 const INT32_MAX = 2_147_483_647;
@@ -105,5 +105,12 @@ describe("buildCalendar", () => {
     assert.equal(calendar.busiestDay?.tokens, 64_939_292_736);
     assert.ok(levels.size > 1);
     assert.ok(levels.has(4));
+  });
+});
+
+describe("formatCompactNumber", () => {
+  it("formats trillion-scale totals without collapsing to zero", () => {
+    assert.equal(formatCompactNumber(1_456_074_038_343), "1.46T");
+    assert.equal(formatCompactNumber(64_939_292_736), "64.9B");
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { animate, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 import {
   formatCompactNumber,
   formatDuration,
@@ -26,6 +26,10 @@ function format(value: number, kind: CountKind): string {
   }
 }
 
+function easeOutCubic(t: number): number {
+  return 1 - (1 - t) ** 3;
+}
+
 export function CountUp({
   amount,
   kind,
@@ -38,7 +42,9 @@ export function CountUp({
   duration?: number;
 }) {
   const reduced = useReducedMotion();
-  const [value, setValue] = useState(0);
+  // Start on the real total so a skipped animation (no JS, reduced motion, or a
+  // trillion-scale value that a generic interpolator refuses) never paints "0".
+  const [value, setValue] = useState(amount);
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
@@ -46,15 +52,37 @@ export function CountUp({
       return;
     }
 
-    const controls = animate(0, amount, {
-      duration,
-      delay,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: setValue,
-      onComplete: () => setSettled(true),
-    });
+    let frame = 0;
+    let origin = 0;
+    const delayMs = delay * 1000;
+    const durationMs = duration * 1000;
 
-    return () => controls.stop();
+    const tick = (now: number) => {
+      if (!origin) {
+        origin = now;
+      }
+
+      const elapsed = now - origin - delayMs;
+      if (elapsed <= 0) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+
+      const progress = Math.min(1, elapsed / durationMs);
+      setValue(amount * easeOutCubic(progress));
+
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+
+      setValue(amount);
+      setSettled(true);
+    };
+
+    frame = requestAnimationFrame(tick);
+
+    return () => cancelAnimationFrame(frame);
   }, [amount, delay, duration, reduced]);
 
   return (
