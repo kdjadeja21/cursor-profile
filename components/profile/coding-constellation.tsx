@@ -4,11 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInView, useReducedMotion } from "motion/react";
 import type { Calendar, CalendarCell } from "@/lib/derive";
 import { useIsClient } from "@/lib/use-is-client";
-import {
-  formatCompactNumber,
-  formatDayLabel,
-  formatFullNumber,
-} from "@/lib/derive";
+import { formatCompactNumber, formatDayLabel } from "@/lib/derive";
 import { cx } from "@/lib/cx";
 
 const LEVEL_CLASS: Record<CalendarCell["level"], string> = {
@@ -27,7 +23,7 @@ function cellLabel(cell: CalendarCell): string {
   }
 
   return cell.tokens > 0
-    ? `${formatDayLabel(cell.date)}, ${formatFullNumber(cell.tokens)} tokens`
+    ? `${formatDayLabel(cell.date)}, ${formatCompactNumber(cell.tokens)} tokens`
     : `${formatDayLabel(cell.date)}, no activity`;
 }
 
@@ -200,7 +196,7 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
             <>
               <span className="text-ink tabular">
                 {active.inRange && active.tokens > 0
-                  ? `${formatFullNumber(active.tokens)} tokens`
+                  ? `${formatCompactNumber(active.tokens)} tokens`
                   : "No activity"}
               </span>
               <span className="text-ink-faint"> · {formatDayLabel(active.date)}</span>
