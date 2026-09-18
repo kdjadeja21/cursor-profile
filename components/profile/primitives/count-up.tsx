@@ -29,8 +29,13 @@ function format(value: number, kind: CountKind): string {
 }
 
 /**
- * Counts from zero to the value once `start` flips true, then lands with a spring
- * punch so the settled number is the moment the eye is drawn to.
+ * Counts from zero to the value once `start` flips true, then lands with a scale
+ * punch. The first paint is the real total so a skipped animation (no JS, reduced
+ * motion, or a trillion-scale value) never shows "0".
+ *
+ * Progress is a 0–1 clock rather than interpolating the raw amount: GSAP (and
+ * Motion before it) can refuse to tween numbers past ~2^53, which is exactly
+ * Lauren-scale token totals.
  */
 export function CountUp({
   amount,
@@ -43,7 +48,7 @@ export function CountUp({
 }: {
   amount: number;
   kind: CountKind;
-  /** Hold at zero until the scene is on screen. */
+  /** Hold at the settled value until the scene is on screen, then replay from 0. */
   start?: boolean;
   delay?: number;
   duration?: number;
@@ -54,7 +59,7 @@ export function CountUp({
   const reduced = useReducedMotion();
   const rootRef = useRef<HTMLSpanElement>(null);
   const digitsRef = useRef<HTMLSpanElement>(null);
-  const [settled, setSettled] = useState(false);
+  const [settled, setSettled] = useState(true);
 
   useGSAP(
     () => {
@@ -63,22 +68,24 @@ export function CountUp({
         return;
       }
 
+      digits.textContent = format(amount, kind);
+
       if (reduced !== false || !start) {
-        digits.textContent = format(reduced ? amount : 0, kind);
         return;
       }
 
-      const proxy = { n: 0 };
+      const proxy = { t: 0 };
       gsap.to(proxy, {
-        n: amount,
+        t: 1,
         duration,
         delay,
         ease: "expo.out",
         onStart: () => {
           setSettled(false);
+          digits.textContent = format(0, kind);
         },
         onUpdate: () => {
-          digits.textContent = format(proxy.n, kind);
+          digits.textContent = format(amount * proxy.t, kind);
         },
         onComplete: () => {
           digits.textContent = format(amount, kind);
@@ -105,7 +112,7 @@ export function CountUp({
   return (
     <span ref={rootRef} className={cx("inline-block will-change-transform", className)}>
       <span ref={digitsRef} aria-hidden="true">
-        {format(reduced ? amount : 0, kind)}
+        {format(amount, kind)}
       </span>
       {/*
         The visible digits churn every frame, so they stay hidden from assistive tech
