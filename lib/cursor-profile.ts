@@ -1,5 +1,6 @@
 import { cacheLife } from "next/cache";
 import { normalizeHandle } from "@/lib/handle";
+import { asNumber, resolveTokens } from "@/lib/tokens";
 
 export { DEFAULT_HANDLE, normalizeHandle, parseHandleInput } from "@/lib/handle";
 
@@ -69,20 +70,6 @@ function asTrimmedString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-/** Upstream serializes large integers as strings, so both forms have to be accepted. */
-function asNumber(value: unknown): number {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value.trim());
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  return 0;
-}
-
 /** `links` arrives as a `{ link1: url }` map rather than an array. */
 function asStringList(value: unknown): string[] {
   const source = Array.isArray(value)
@@ -129,8 +116,12 @@ function toDailyTokens(
         return null;
       }
 
-      const key = tokenKeys.find((candidate) => candidate in entry);
-      return { date, tokens: key ? asNumber(entry[key]) : 0 };
+      const tokens = resolveTokens(entry, tokenKeys);
+      if (tokens === null) {
+        return null;
+      }
+
+      return { date, tokens };
     })
     .filter((entry): entry is DailyTokens => entry !== null)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -176,8 +167,8 @@ function toIdentity(raw: Record<string, unknown>): ProfileIdentity | null {
 
 function toActivity(raw: Record<string, unknown>): ProfileActivity {
   const activityCounts = toDailyTokens(asRecordList(raw.activityCounts), [
-    "count",
     "value",
+    "count",
   ]);
 
   const activeDates = Array.isArray(raw.activeDates)
