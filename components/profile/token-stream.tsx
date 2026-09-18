@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { DailyTokens } from "@/lib/cursor-profile";
 import { formatCompactNumber, formatDayLabel } from "@/lib/derive";
 import { useIsClient } from "@/lib/use-is-client";
 import { SceneItem, useScene } from "@/components/profile/scene";
+import { GsapSwap } from "@/components/fx/gsap-swap";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 const VIEW_WIDTH = 960;
 const VIEW_HEIGHT = 340;
@@ -62,7 +64,7 @@ function toSmoothPath(points: Point[]): string {
     const third = dx[index] / 3;
     path +=
       ` C${points[index].x + third} ${points[index].y + tangents[index] * third}` +
-      ` ${points[index + 1].x - third} ${points[index + 1].y - tangents[index + 1] * third}` +
+      ` ${points[index + 1].x - third} ${points[index + 1].y + tangents[index + 1] * third}` +
       ` ${points[index + 1].x} ${points[index + 1].y}`;
   }
 
@@ -78,11 +80,15 @@ export function TokenStream({
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const lineRef = useRef<SVGPathElement>(null);
+  const areaRef = useRef<SVGPathElement>(null);
+  const cometRef = useRef<SVGCircleElement>(null);
+  const peakRef = useRef<SVGGElement>(null);
   const reduced = useReducedMotion();
   const { ready } = useScene();
-  // Without this the server renders the line with a zero-length dash array, so the
-  // chart is missing entirely until JavaScript arrives.
-  const animated = useIsClient() && !reduced;
+  // Without this the server renders the line fully drawn, so the chart is present
+  // until JavaScript arrives.
+  const animated = useIsClient() && reduced === false;
   const drawn = !animated || ready;
 
   const { points, linePath, areaPath, max, peakIndex } = useMemo(() => {
@@ -114,6 +120,92 @@ export function TokenStream({
       peakIndex: series.findIndex((entry) => entry.tokens === peak),
     };
   }, [series]);
+
+  useGSAP(
+    () => {
+      const line = lineRef.current;
+      const area = areaRef.current;
+      const comet = cometRef.current;
+      const peak = peakRef.current;
+
+      if (!line || !linePath) {
+        return;
+      }
+
+      const length = line.getTotalLength();
+
+      if (!animated || !ready) {
+        gsap.set(line, {
+          strokeDasharray: length,
+          strokeDashoffset: animated ? length : 0,
+        });
+        if (area) {
+          gsap.set(area, { opacity: animated ? 0 : 1 });
+        }
+        if (comet) {
+          gsap.set(comet, { opacity: 0 });
+        }
+        return;
+      }
+
+      gsap.set(line, { strokeDasharray: length, strokeDashoffset: length });
+      gsap.to(line, {
+        strokeDashoffset: 0,
+        duration: DRAW_SECONDS,
+        delay: 0.3,
+        ease: "power3.out",
+      });
+
+      if (area) {
+        gsap.fromTo(
+          area,
+          { opacity: 0 },
+          { opacity: 1, duration: 1.2, delay: DRAW_SECONDS * 0.6 + 0.3, ease: "power2.out" },
+        );
+      }
+
+      if (comet) {
+        gsap.set(comet, { opacity: 0 });
+        gsap.to(comet, {
+          opacity: 1,
+          duration: 0.2,
+          delay: 0.3,
+        });
+        gsap.to(comet, {
+          duration: DRAW_SECONDS,
+          delay: 0.3,
+          ease: "power3.out",
+          motionPath: {
+            path: line,
+            align: line,
+            alignOrigin: [0.5, 0.5],
+            autoRotate: false,
+          },
+        });
+        gsap.to(comet, {
+          opacity: 0,
+          duration: 0.3,
+          delay: DRAW_SECONDS + 0.1,
+        });
+      }
+
+      if (peak) {
+        gsap.fromTo(
+          peak,
+          { opacity: 0, scale: 0 },
+          {
+            opacity: 1,
+            scale: 1,
+            duration: 0.55,
+            delay: DRAW_SECONDS + 0.3,
+            ease: "back.out(1.7)",
+            transformOrigin: "50% 50%",
+          },
+        );
+      }
+    },
+    { dependencies: [animated, ready, linePath] },
+  );
 
   const pickIndex = useCallback(
     (clientX: number) => {
@@ -165,6 +257,10 @@ export function TokenStream({
   const active = activeIndex === null ? null : points[activeIndex];
   const readout = active?.entry ?? { date: series.at(-1)!.date, tokens: total };
   const peak = peakIndex >= 0 ? points[peakIndex] : null;
+  const readoutKey = active ? active.entry.date : "total";
+  const readoutValue = active
+    ? formatCompactNumber(active.entry.tokens)
+    : formatCompactNumber(total);
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(200px,280px)_1fr] lg:items-center lg:gap-10">
@@ -173,20 +269,11 @@ export function TokenStream({
           <p className="text-ink-faint text-small mb-3 tracking-[0.3em] uppercase">
             {active ? formatDayLabel(active.entry.date) : "Last 30 days"}
           </p>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.p
-              key={active ? active.entry.date : "total"}
-              initial={reduced ? false : { opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduced ? undefined : { opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="text-hero text-accent drop-glow tabular font-extrabold leading-none"
-            >
-              {active
-                ? formatCompactNumber(active.entry.tokens)
-                : formatCompactNumber(total)}
-            </motion.p>
-          </AnimatePresence>
+          <GsapSwap id={readoutKey}>
+            <p className="text-hero text-accent tabular font-extrabold leading-none">
+              {readoutValue}
+            </p>
+          </GsapSwap>
           <p className="text-ink-muted text-base mt-3" aria-live="polite">
             {active
               ? `${formatCompactNumber(active.entry.tokens)} tokens on ${formatDayLabel(active.entry.date)}`
@@ -227,13 +314,6 @@ export function TokenStream({
                 <stop offset="60%" stopColor="var(--color-accent)" />
                 <stop offset="100%" stopColor="var(--color-ember)" />
               </linearGradient>
-              <filter id="token-glow" x="-20%" y="-50%" width="140%" height="200%">
-                <feGaussianBlur stdDeviation="6" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
             </defs>
 
             {[0, 0.5, 1].map((fraction) => {
@@ -252,68 +332,31 @@ export function TokenStream({
               );
             })}
 
-            <motion.path
-              d={areaPath}
-              fill="url(#token-fill)"
-              initial={animated ? { opacity: 0 } : false}
-              animate={{ opacity: drawn ? 1 : 0 }}
-              transition={{ duration: 1.2, delay: DRAW_SECONDS * 0.6 }}
-            />
-            {/* pathLength lets motion handle dash maths, so the draw-in works at any width. */}
-            <motion.path
+            <path ref={areaRef} d={areaPath} fill="url(#token-fill)" opacity={drawn && !animated ? 1 : 0} />
+            <path
+              ref={lineRef}
               d={linePath}
               fill="none"
               stroke="url(#token-stroke)"
               strokeWidth={3.5}
               strokeLinecap="round"
               strokeLinejoin="round"
-              filter="url(#token-glow)"
-              initial={animated ? { pathLength: 0 } : false}
-              animate={{ pathLength: drawn ? 1 : 0 }}
-              transition={{ duration: DRAW_SECONDS, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
             />
 
-            {/* Comet head that rides the line as it draws, then fades. */}
             {animated ? (
-              <motion.circle
+              <circle
+                ref={cometRef}
                 r={7}
                 fill="var(--color-ember)"
-                filter="url(#token-glow)"
-                initial={{ opacity: 0, offsetDistance: "0%" }}
-                animate={
-                  drawn
-                    ? { opacity: [0, 1, 1, 0], offsetDistance: "100%" }
-                    : undefined
-                }
-                transition={{
-                  offsetDistance: {
-                    duration: DRAW_SECONDS,
-                    delay: 0.3,
-                    ease: [0.22, 1, 0.36, 1],
-                  },
-                  opacity: {
-                    duration: DRAW_SECONDS + 0.4,
-                    delay: 0.3,
-                    times: [0, 0.05, 0.85, 1],
-                  },
-                }}
-                style={{
-                  offsetPath: `path("${linePath}")`,
-                  offsetRotate: "0deg",
-                }}
+                opacity={0}
               />
             ) : null}
 
             {peak && drawn ? (
-              <motion.g
-                initial={animated ? { opacity: 0, scale: 0 } : false}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ type: "spring", stiffness: 260, damping: 16, delay: DRAW_SECONDS + 0.3 }}
-                style={{ transformOrigin: `${peak.x}px ${peak.y}px` }}
-              >
+              <g ref={peakRef} style={{ transformOrigin: `${peak.x}px ${peak.y}px` }}>
                 <circle cx={peak.x} cy={peak.y} r={10} fill="var(--color-ember)" opacity={0.25} />
                 <circle cx={peak.x} cy={peak.y} r={5} fill="var(--color-ember)" />
-              </motion.g>
+              </g>
             ) : null}
 
             {active ? (
@@ -333,7 +376,6 @@ export function TokenStream({
                   fill="var(--color-surface)"
                   stroke="var(--color-accent)"
                   strokeWidth={3}
-                  filter="url(#token-glow)"
                 />
               </g>
             ) : null}

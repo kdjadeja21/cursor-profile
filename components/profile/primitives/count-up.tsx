@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { animate, motion, useReducedMotion } from "motion/react";
+import { useRef, useState } from "react";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import {
   formatCompactNumber,
   formatDuration,
@@ -29,7 +30,7 @@ function format(value: number, kind: CountKind): string {
 
 /**
  * Counts from zero to the value once `start` flips true, then lands with a spring
- * punch and a glow flash so the settled number is the moment the eye is drawn to.
+ * punch so the settled number is the moment the eye is drawn to.
  */
 export function CountUp({
   amount,
@@ -46,43 +47,66 @@ export function CountUp({
   start?: boolean;
   delay?: number;
   duration?: number;
-  /** Scale-and-glow flash on completion. */
+  /** Scale flash on completion. */
   punch?: boolean;
   className?: string;
 }) {
   const reduced = useReducedMotion();
-  const [value, setValue] = useState(0);
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const digitsRef = useRef<HTMLSpanElement>(null);
   const [settled, setSettled] = useState(false);
 
-  useEffect(() => {
-    if (reduced || !start) {
-      return;
-    }
+  useGSAP(
+    () => {
+      const digits = digitsRef.current;
+      if (!digits) {
+        return;
+      }
 
-    const controls = animate(0, amount, {
-      duration,
-      delay,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate: setValue,
-      onComplete: () => setSettled(true),
-    });
+      if (reduced !== false || !start) {
+        digits.textContent = format(reduced ? amount : 0, kind);
+        return;
+      }
 
-    return () => controls.stop();
-  }, [amount, delay, duration, reduced, start]);
-
-  const shown = reduced ? amount : value;
+      const proxy = { n: 0 };
+      gsap.to(proxy, {
+        n: amount,
+        duration,
+        delay,
+        ease: "expo.out",
+        onStart: () => {
+          setSettled(false);
+        },
+        onUpdate: () => {
+          digits.textContent = format(proxy.n, kind);
+        },
+        onComplete: () => {
+          digits.textContent = format(amount, kind);
+          setSettled(true);
+          if (punch && rootRef.current) {
+            gsap.fromTo(
+              rootRef.current,
+              { scale: 1 },
+              {
+                scale: 1.08,
+                duration: 0.28,
+                yoyo: true,
+                repeat: 1,
+                ease: "power2.out",
+              },
+            );
+          }
+        },
+      });
+    },
+    { dependencies: [amount, delay, duration, kind, punch, reduced, start] },
+  );
 
   return (
-    <motion.span
-      className={cx("inline-block will-change-transform", className)}
-      animate={
-        punch && settled && !reduced
-          ? { scale: [1, 1.08, 1], filter: ["brightness(1)", "brightness(1.6)", "brightness(1)"] }
-          : undefined
-      }
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <span aria-hidden="true">{format(shown, kind)}</span>
+    <span ref={rootRef} className={cx("inline-block will-change-transform", className)}>
+      <span ref={digitsRef} aria-hidden="true">
+        {format(reduced ? amount : 0, kind)}
+      </span>
       {/*
         The visible digits churn every frame, so they stay hidden from assistive tech
         and the settled value is announced exactly once instead of as a stream.
@@ -90,6 +114,6 @@ export function CountUp({
       <span className="sr-only" aria-live="polite">
         {reduced || settled ? format(amount, kind) : ""}
       </span>
-    </motion.span>
+    </span>
   );
 }

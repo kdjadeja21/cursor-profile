@@ -85,7 +85,8 @@ html[data-mood="profile"] {
 }
 
 html {
-  scroll-behavior: smooth;
+  /* GSAP owns scene jumps; native smooth-scroll fights ScrollToPlugin. */
+  scroll-behavior: auto;
   height: 100%;
 }
 
@@ -166,8 +167,8 @@ body {
     box-shadow:
       inset 0 1px 0 color-mix(in srgb, white 12%, transparent),
       0 24px 60px -30px rgb(0 0 0 / 0.8);
-    backdrop-filter: blur(12px) saturate(1.2);
-    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    backdrop-filter: blur(8px) saturate(1.15);
+    -webkit-backdrop-filter: blur(8px) saturate(1.15);
   }
 
   /* Pointer-tracked specular sheen; TiltCard writes --tilt-x / --tilt-y. */
@@ -210,12 +211,10 @@ body {
   from {
     opacity: 0;
     transform: translateY(24px);
-    filter: blur(6px);
   }
   to {
     opacity: 1;
     transform: none;
-    filter: blur(0);
   }
 }
 

@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { motion, useReducedMotion } from "motion/react";
 import type { ProfileIdentity } from "@/lib/cursor-profile";
 import type { Celebration } from "@/lib/derive";
 import { SplitText } from "@/components/fx/split-text";
 import { burstParticles } from "@/components/fx/particle-field";
 import { CelebrationBurst } from "@/components/profile/celebration-burst";
 import { SceneItem, useScene } from "@/components/profile/scene";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 function badgeLabel(value: string): string {
@@ -60,7 +61,6 @@ function Avatar({ profile }: { profile: ProfileIdentity }) {
           mask: "radial-gradient(farthest-side, transparent calc(100% - 6px), black calc(100% - 5px))",
           WebkitMask:
             "radial-gradient(farthest-side, transparent calc(100% - 6px), black calc(100% - 5px))",
-          filter: "drop-shadow(0 0 10px var(--color-accent))",
         }}
       />
       <div
@@ -116,6 +116,7 @@ export function HeroScene({
   const { ready } = useScene();
   const reduced = useReducedMotion();
   const fired = useRef(false);
+  const badgesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!ready || reduced || fired.current) {
@@ -129,30 +130,55 @@ export function HeroScene({
     return () => clearTimeout(timer);
   }, [ready, reduced]);
 
+  useGSAP(
+    () => {
+      const root = badgesRef.current;
+      if (!root || !ready || reduced !== false) {
+        return;
+      }
+
+      const badges = root.querySelectorAll("[data-badge]");
+      gsap.fromTo(
+        badges,
+        { opacity: 0, scale: 0.6 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.55,
+          stagger: 0.1,
+          delay: 0.5,
+          ease: "back.out(1.6)",
+        },
+      );
+    },
+    { dependencies: [ready, reduced] },
+  );
+
   return (
     <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-[auto_1fr] lg:gap-16">
       <SceneItem from="scale" delay={0.1} className="justify-self-center lg:justify-self-start">
         <Avatar profile={profile} />
       </SceneItem>
 
-      <div className="min-w-0 text-center lg:text-left">
+      <div className="min-w-0 overflow-visible text-center lg:text-left">
         <SceneItem delay={0.35}>
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-            {profile.badges.map((badge, index) => (
-              <motion.span
+          <div
+            ref={badgesRef}
+            className="mb-6 flex flex-wrap items-center justify-center gap-2 lg:justify-start"
+          >
+            {profile.badges.map((badge) => (
+              <span
                 key={badge}
-                initial={reduced ? false : { opacity: 0, scale: 0.6 }}
-                animate={ready ? { opacity: 1, scale: 1 } : undefined}
-                transition={{ type: "spring", stiffness: 320, damping: 18, delay: 0.5 + index * 0.1 }}
+                data-badge=""
                 className="border-accent/50 bg-accent/15 text-accent text-small shadow-glow rounded-full border px-4 py-1.5 font-medium tracking-[0.18em] uppercase"
               >
                 {badgeLabel(badge)}
-              </motion.span>
+              </span>
             ))}
           </div>
         </SceneItem>
 
-        <h1 className="text-hero drop-glow max-w-full font-bold">
+        <h1 className="text-hero max-w-full overflow-visible font-bold">
           <SplitText
             text={profile.displayName}
             by="chars"

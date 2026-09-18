@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useReducedMotion } from "motion/react";
+import { gsap } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 type Particle = {
   x: number;
@@ -15,8 +16,8 @@ type Particle = {
 };
 
 const BURST_EVENT = "fx:burst";
-const MAX_PARTICLES = 220;
-const AMBIENT_TARGET = 70;
+const MAX_PARTICLES = 110;
+const AMBIENT_TARGET = 36;
 
 export type BurstOptions = {
   /** Viewport-relative origin, 0..1. Defaults to the centre. */
@@ -50,11 +51,7 @@ function spawnAmbient(width: number, height: number): Particle {
   };
 }
 
-function spawnBurst(
-  originX: number,
-  originY: number,
-  power: number,
-): Particle {
+function spawnBurst(originX: number, originY: number, power: number): Particle {
   const angle = Math.random() * Math.PI * 2;
   const speed = (120 + Math.random() * 260) * power;
   return {
@@ -70,8 +67,10 @@ function spawnBurst(
 }
 
 /**
- * Ember field on a single canvas. Capped particle count, pauses when the tab is hidden,
- * and skipped entirely under reduced motion. `burstParticles()` adds a spark shower.
+ * Ember field on a single canvas. Capped particle count, paused when the tab is
+ * hidden, and skipped entirely under reduced motion. Driven by GSAP's ticker so
+ * it stays in lockstep with the rest of the recap. `burstParticles()` adds a
+ * spark shower.
  */
 export function ParticleField({
   className,
@@ -89,7 +88,7 @@ export function ParticleField({
     }
 
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
+    const context = canvas?.getContext("2d", { alpha: true });
     if (!canvas || !context) {
       return;
     }
@@ -97,13 +96,12 @@ export function ParticleField({
     let width = 0;
     let height = 0;
     let dpr = 1;
-    let frame = 0;
     let last = performance.now();
     let hidden = document.hidden;
     const particles: Particle[] = [];
 
     const resize = () => {
-      dpr = Math.min(2, window.devicePixelRatio || 1);
+      dpr = Math.min(1.5, window.devicePixelRatio || 1);
       width = window.innerWidth;
       height = window.innerHeight;
       canvas.width = Math.floor(width * dpr);
@@ -123,8 +121,8 @@ export function ParticleField({
       }
     };
 
-    const step = (now: number) => {
-      frame = requestAnimationFrame(step);
+    const step = () => {
+      const now = performance.now();
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
@@ -134,7 +132,7 @@ export function ParticleField({
 
       context.clearRect(0, 0, width, height);
 
-      if (ambient && particles.length < AMBIENT_TARGET && Math.random() < 0.6) {
+      if (ambient && particles.length < AMBIENT_TARGET && Math.random() < 0.45) {
         particles.push(spawnAmbient(width, height));
       }
 
@@ -149,7 +147,6 @@ export function ParticleField({
           continue;
         }
 
-        // Burst sparks decelerate and fall; ambient embers just drift.
         const isBurst = particle.ttl < 3;
         if (isBurst) {
           particle.vx *= 1 - 2.4 * dt;
@@ -162,19 +159,20 @@ export function ParticleField({
         particle.y += particle.vy * dt;
 
         const progress = particle.life / particle.ttl;
-        const alpha = isBurst
-          ? 1 - progress
-          : Math.sin(progress * Math.PI) * 0.75;
+        const alpha = isBurst ? 1 - progress : Math.sin(progress * Math.PI) * 0.7;
+
+        // Soft halo without canvas shadowBlur, which was the GPU tax.
+        context.beginPath();
+        context.fillStyle = `hsla(${particle.hue}, 100%, ${isBurst ? 68 : 60}%, ${alpha * 0.28})`;
+        context.arc(particle.x, particle.y, particle.size * 3.2, 0, Math.PI * 2);
+        context.fill();
 
         context.beginPath();
-        context.fillStyle = `hsla(${particle.hue}, 100%, ${isBurst ? 68 : 60}%, ${alpha})`;
-        context.shadowColor = `hsla(${particle.hue}, 100%, 60%, ${alpha})`;
-        context.shadowBlur = isBurst ? 12 : 8;
+        context.fillStyle = `hsla(${particle.hue}, 100%, ${isBurst ? 72 : 62}%, ${alpha})`;
         context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         context.fill();
       }
 
-      context.shadowBlur = 0;
       context.globalCompositeOperation = "source-over";
     };
 
@@ -187,10 +185,10 @@ export function ParticleField({
     window.addEventListener("resize", resize);
     window.addEventListener(BURST_EVENT, onBurst);
     document.addEventListener("visibilitychange", onVisibility);
-    frame = requestAnimationFrame(step);
+    gsap.ticker.add(step);
 
     return () => {
-      cancelAnimationFrame(frame);
+      gsap.ticker.remove(step);
       window.removeEventListener("resize", resize);
       window.removeEventListener(BURST_EVENT, onBurst);
       document.removeEventListener("visibilitychange", onVisibility);

@@ -1,9 +1,12 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useCallback, useEffect, useRef } from "react";
 import type { SceneDefinition } from "@/components/profile/scene";
+import { GsapFill } from "@/components/fx/gsap-fill";
+import { GsapSwap } from "@/components/fx/gsap-swap";
+import { gsap, useGSAP } from "@/lib/gsap";
 import { useIsClient } from "@/lib/use-is-client";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 /**
  * Plays the scenes as a paced recap so nobody has to touch the screen. Any wheel,
@@ -24,6 +27,7 @@ export function SceneDirector({
   onJump: (index: number) => void;
 }) {
   const reduced = useReducedMotion();
+  const pillRef = useRef<HTMLDivElement>(null);
   // The server never knows the motion preference, so the control stays unrendered
   // until after hydration to keep the markup identical on both sides.
   const isClient = useIsClient();
@@ -102,6 +106,22 @@ export function SceneDirector({
     };
   }, [onJump, onPausedChange, scenes.length, step]);
 
+  useGSAP(
+    () => {
+      const pill = pillRef.current;
+      if (!pill || !armed) {
+        return;
+      }
+
+      gsap.fromTo(
+        pill,
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.7, delay: 1.4, ease: "expo.out" },
+      );
+    },
+    { dependencies: [armed] },
+  );
+
   if (!armed) {
     return null;
   }
@@ -118,10 +138,8 @@ export function SceneDirector({
       : `${activeIndex + 1} / ${scenes.length}`;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay: 1.4 }}
+    <div
+      ref={pillRef}
       className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 sm:bottom-6 sm:px-4"
     >
       <div className="glass flex items-center gap-1 rounded-full py-1.5 pr-2 pl-2">
@@ -167,29 +185,24 @@ export function SceneDirector({
         </button>
 
         <div className="relative flex h-9 min-w-0 max-w-[min(58vw,280px)] items-center overflow-hidden px-2 sm:min-w-[240px] sm:max-w-none sm:px-3">
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.span
-              key={label}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.25 }}
-              className="text-ink-muted text-micro truncate tracking-[0.18em] uppercase"
-            >
+          <GsapSwap id={label} className="min-w-0">
+            <span className="text-ink-muted text-micro truncate tracking-[0.18em] uppercase">
               <span className="sm:hidden">{shortLabel}</span>
               <span className="hidden sm:inline">{label}</span>
-            </motion.span>
-          </AnimatePresence>
+            </span>
+          </GsapSwap>
 
           {playing && dwell > 0 ? (
             <div
               aria-hidden="true"
               className="bg-edge absolute inset-x-3 bottom-0.5 h-px overflow-hidden rounded-full"
             >
-              <div
+              <GsapFill
                 key={activeIndex}
-                className="bg-accent h-full origin-left animate-[progress-fill_linear_forwards]"
-                style={{ animationDuration: `${dwell}ms` }}
+                play
+                duration={dwell / 1000}
+                ease="none"
+                className="bg-accent h-full rounded-full"
               />
             </div>
           ) : null}
@@ -217,6 +230,6 @@ export function SceneDirector({
           </svg>
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }

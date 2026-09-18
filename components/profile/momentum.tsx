@@ -1,11 +1,14 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { useRef } from "react";
 import type { StreakStatus } from "@/lib/derive";
 import { formatDayLabel } from "@/lib/derive";
 import { CountUp } from "@/components/profile/primitives/count-up";
 import { TiltCard } from "@/components/fx/tilt-card";
+import { GsapFill } from "@/components/fx/gsap-fill";
 import { SceneItem, useScene } from "@/components/profile/scene";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 /** Glow and size grow with the run so a long streak reads as heavier at a glance. */
@@ -28,15 +31,38 @@ function StreakOrb({
   ready: boolean;
 }) {
   const reduced = useReducedMotion();
+  const arcRef = useRef<SVGCircleElement>(null);
   const intensity = orbScale(days);
   const glow = 40 + Math.round(intensity * 90);
+  const offset = ARC_LENGTH * (1 - Math.max(progress, days > 0 ? 0.02 : 0));
+
+  useGSAP(
+    () => {
+      const arc = arcRef.current;
+      if (!arc) {
+        return;
+      }
+
+      if (reduced !== false || !ready) {
+        gsap.set(arc, { strokeDashoffset: reduced ? offset : ARC_LENGTH });
+        return;
+      }
+
+      gsap.fromTo(
+        arc,
+        { strokeDashoffset: ARC_LENGTH },
+        { strokeDashoffset: offset, duration: 1.8, delay: 0.6, ease: "power3.out" },
+      );
+    },
+    { dependencies: [ready, reduced, offset] },
+  );
 
   return (
     <div
       aria-hidden="true"
       className="relative flex aspect-square w-[min(42vmin,280px)] shrink-0 items-center justify-center"
     >
-      {live && !reduced ? (
+      {live && reduced !== true ? (
         <>
           <span className="pulse-ring border-data-streak/40 absolute inset-[10%] rounded-full border" />
           <span
@@ -56,7 +82,8 @@ function StreakOrb({
           stroke="var(--color-edge)"
           strokeWidth={1.5}
         />
-        <motion.circle
+        <circle
+          ref={arcRef}
           cx={50}
           cy={50}
           r={ARC_RADIUS}
@@ -65,19 +92,14 @@ function StreakOrb({
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeDasharray={ARC_LENGTH}
-          initial={reduced ? false : { strokeDashoffset: ARC_LENGTH }}
-          animate={
-            ready ? { strokeDashoffset: ARC_LENGTH * (1 - Math.max(progress, days > 0 ? 0.02 : 0)) } : undefined
-          }
-          transition={{ duration: 1.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={{ filter: "drop-shadow(0 0 6px var(--color-data-streak))" }}
+          strokeDashoffset={ARC_LENGTH}
         />
       </svg>
 
       <div
         className={cx(
           "absolute inset-[18%] rounded-full",
-          live && !reduced && "breathe",
+          live && reduced !== true && "breathe",
         )}
         style={{
           background: live
@@ -148,7 +170,6 @@ function statusCopy(streak: StreakStatus): { title: string; body: string } {
 
 export function Momentum({ streak }: { streak: StreakStatus }) {
   const { ready } = useScene();
-  const reduced = useReducedMotion();
   const status = statusCopy(streak);
   const live = streak.current > 0 && !streak.isBroken;
   const progress =
@@ -201,12 +222,12 @@ export function Momentum({ streak }: { streak: StreakStatus }) {
               role="img"
               aria-label={`Current streak is ${streak.current} of the ${streak.longest} day record`}
             >
-              <motion.div
-                className="bg-data-streak h-full origin-left rounded-full shadow-[0_0_14px_var(--color-data-streak)]"
+              <GsapFill
+                play={ready}
+                duration={1.6}
+                delay={1}
+                className="bg-data-streak h-full rounded-full shadow-[0_0_14px_var(--color-data-streak)]"
                 style={{ width: `${Math.max(progress * 100, streak.current > 0 ? 2 : 0)}%` }}
-                initial={reduced ? false : { scaleX: 0 }}
-                animate={ready ? { scaleX: 1 } : undefined}
-                transition={{ duration: 1.6, delay: 1, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
           </TiltCard>

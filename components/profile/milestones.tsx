@@ -1,9 +1,12 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { useRef } from "react";
 import type { Milestone } from "@/lib/derive";
 import { TiltCard } from "@/components/fx/tilt-card";
+import { GsapFill } from "@/components/fx/gsap-fill";
 import { SceneItem, useScene } from "@/components/profile/scene";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 function MilestoneCard({
@@ -15,24 +18,42 @@ function MilestoneCard({
 }) {
   const { ready } = useScene();
   const reduced = useReducedMotion();
+  const cardRef = useRef<HTMLDivElement>(null);
   const progress = milestone.progress
     ? Math.min(1, milestone.progress.current / milestone.progress.target)
     : 0;
   const isRecord = milestone.kind === "record" && milestone.earned;
 
+  useGSAP(
+    () => {
+      const node = cardRef.current;
+      if (!node || reduced !== false) {
+        return;
+      }
+
+      if (!ready) {
+        gsap.set(node, { opacity: 0, rotateX: -28, y: 40 });
+        return;
+      }
+
+      gsap.fromTo(
+        node,
+        { opacity: 0, rotateX: -28, y: 40 },
+        {
+          opacity: 1,
+          rotateX: 0,
+          y: 0,
+          duration: 0.8,
+          delay: 0.35 + index * 0.12,
+          ease: "expo.out",
+        },
+      );
+    },
+    { dependencies: [ready, reduced, index] },
+  );
+
   return (
-    <motion.div
-      className="h-full"
-      style={{ perspective: 1200 }}
-      initial={reduced ? false : { opacity: 0, rotateX: -35, y: 50 }}
-      animate={ready ? { opacity: 1, rotateX: 0, y: 0 } : undefined}
-      transition={{
-        type: "spring",
-        stiffness: 160,
-        damping: 20,
-        delay: 0.35 + index * 0.12,
-      }}
-    >
+    <div ref={cardRef} className="h-full" style={{ perspective: 1200 }}>
       <TiltCard
         glow={milestone.earned}
         className={cx(
@@ -78,12 +99,12 @@ function MilestoneCard({
         {milestone.progress ? (
           <div className="relative mt-6">
             <div className="bg-edge h-1.5 overflow-hidden rounded-full">
-              <motion.div
-                className="bg-ink-muted h-full origin-left rounded-full"
+              <GsapFill
+                play={ready}
+                duration={1.2}
+                delay={0.9 + index * 0.1}
+                className="bg-ink-muted h-full rounded-full"
                 style={{ width: `${Math.max(progress * 100, 1)}%` }}
-                initial={reduced ? false : { scaleX: 0 }}
-                animate={ready ? { scaleX: 1 } : undefined}
-                transition={{ duration: 1.2, delay: 0.9 + index * 0.1, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
             <p className="text-ink-faint text-small mt-2 tabular">
@@ -93,7 +114,7 @@ function MilestoneCard({
           </div>
         ) : null}
       </TiltCard>
-    </motion.div>
+    </div>
   );
 }
 

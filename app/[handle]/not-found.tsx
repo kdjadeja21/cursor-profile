@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="text-accent text-small tracking-[0.32em] uppercase">
         <SplitText text="No signal" by="words" />
       </p>
-      <h1 className="text-hero sm:text-giant drop-glow font-extrabold">
+      <h1 className="text-hero sm:text-giant overflow-visible font-extrabold">
         <SplitText text="404" by="chars" delay={0.2} unitClassName="gradient-ink" caret />
       </h1>
       <p className="text-heading text-ink max-w-xl font-semibold">

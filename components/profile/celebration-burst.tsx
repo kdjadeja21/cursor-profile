@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import type { Celebration } from "@/lib/derive";
 import { useScene } from "@/components/profile/scene";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 /**
  * The single deliberate peak moment. Fires once per session for a milestone that was
@@ -20,6 +21,7 @@ export function CelebrationBurst({
   const reduced = useReducedMotion();
   const { ready } = useScene();
   const [visible, setVisible] = useState(false);
+  const pillRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!ready) {
@@ -73,16 +75,30 @@ export function CelebrationBurst({
     };
   }, [celebration.headline, handle, ready, reduced]);
 
+  useGSAP(
+    () => {
+      const node = pillRef.current;
+      if (!node || !visible || reduced !== false) {
+        return;
+      }
+
+      gsap.fromTo(
+        node,
+        { opacity: 0, y: 24, scale: 0.92 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "back.out(1.6)" },
+      );
+    },
+    { dependencies: [visible, reduced] },
+  );
+
   if (!visible) {
     return null;
   }
 
   return (
-    <motion.div
+    <div
+      ref={pillRef}
       role="status"
-      initial={reduced ? false : { opacity: 0, y: 24, scale: 0.92 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 220, damping: 20 }}
       className="glass shimmer shimmer-auto border-accent/50 shadow-glow mt-6 inline-flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 overflow-hidden rounded-full px-5 py-3 sm:mt-10 sm:px-7 sm:py-4"
     >
       <span aria-hidden="true" className="text-2xl">
@@ -90,6 +106,6 @@ export function CelebrationBurst({
       </span>
       <span className="text-accent text-title font-semibold">{celebration.headline}</span>
       <span className="text-ink-muted text-base">{celebration.detail}</span>
-    </motion.div>
+    </div>
   );
 }

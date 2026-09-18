@@ -199,8 +199,11 @@ export function ProfileExperience({
           }
         });
 
-      setActiveIndex(nearest);
-      setReadyMask((current) => current | arriving | (1 << nearest));
+      setActiveIndex((current) => (current === nearest ? current : nearest));
+      setReadyMask((current) => {
+        const next = current | arriving | (1 << nearest);
+        return next === current ? current : next;
+      });
     };
 
     const schedule = () => {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useRef, useState } from "react";
 import type { AgentTotals } from "@/lib/derive";
 import { formatDayLabel } from "@/lib/derive";
 import { CountUp } from "@/components/profile/primitives/count-up";
 import { SceneItem, useScene } from "@/components/profile/scene";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 type Slice = "local" | "cloud";
@@ -34,6 +35,9 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
   const [hovered, setHovered] = useState<Slice | null>(null);
   const { ready } = useScene();
   const reduced = useReducedMotion();
+  const localRef = useRef<SVGCircleElement>(null);
+  const cloudRef = useRef<SVGCircleElement>(null);
+  const barsRef = useRef<HTMLDivElement>(null);
 
   const centre =
     hovered === "local"
@@ -51,21 +55,109 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
   const localLength = Math.max(0, CIRCUMFERENCE * agents.localShare - ARC_GAP);
   const cloudLength = Math.max(0, CIRCUMFERENCE * agents.cloudShare - ARC_GAP);
 
+  useGSAP(
+    () => {
+      const local = localRef.current;
+      const cloud = cloudRef.current;
+
+      if (reduced !== false || !ready) {
+        if (reduced && local) {
+          gsap.set(local, { strokeDasharray: `${localLength} ${CIRCUMFERENCE}` });
+        }
+        if (reduced && cloud) {
+          gsap.set(cloud, { strokeDasharray: `${cloudLength} ${CIRCUMFERENCE}` });
+        }
+        return;
+      }
+
+      if (local) {
+        gsap.fromTo(
+          local,
+          { strokeDasharray: `0 ${CIRCUMFERENCE}` },
+          {
+            strokeDasharray: `${localLength} ${CIRCUMFERENCE}`,
+            duration: 1.6,
+            delay: 0.5,
+            ease: "power3.out",
+          },
+        );
+      }
+
+      if (cloud) {
+        gsap.fromTo(
+          cloud,
+          { strokeDasharray: `0 ${CIRCUMFERENCE}` },
+          {
+            strokeDasharray: `${cloudLength} ${CIRCUMFERENCE}`,
+            duration: 1.6,
+            delay: 0.9,
+            ease: "power3.out",
+          },
+        );
+      }
+    },
+    { dependencies: [ready, reduced, localLength, cloudLength] },
+  );
+
+  useGSAP(
+    () => {
+      if (!ready) {
+        return;
+      }
+
+      if (localRef.current) {
+        gsap.to(localRef.current, {
+          strokeWidth: hovered === "local" ? 24 : 14,
+          opacity: hovered === "cloud" ? 0.28 : 1,
+          duration: 0.3,
+          ease: "power2.out",
+          overwrite: "auto",
+        });
+      }
+
+      if (cloudRef.current) {
+        gsap.to(cloudRef.current, {
+          strokeWidth: hovered === "cloud" ? 24 : 14,
+          opacity: hovered === "local" ? 0.28 : 1,
+          duration: 0.3,
+          ease: "power2.out",
+          overwrite: "auto",
+        });
+      }
+    },
+    { dependencies: [hovered, ready] },
+  );
+
+  useGSAP(
+    () => {
+      const root = barsRef.current;
+      if (!root || reduced !== false || !ready) {
+        return;
+      }
+
+      gsap.fromTo(
+        root.querySelectorAll("[data-agent-bar]"),
+        { scaleY: 0, opacity: 0 },
+        {
+          scaleY: 1,
+          opacity: 1,
+          duration: 0.7,
+          stagger: 0.035,
+          delay: 1,
+          ease: "power3.out",
+          transformOrigin: "center bottom",
+        },
+      );
+    },
+    { dependencies: [ready, reduced] },
+  );
+
   return (
     <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-center lg:gap-12">
       <div className="flex flex-col items-center gap-10 sm:flex-row sm:gap-12">
         <SceneItem from="scale" delay={0.2}>
           <div className="relative h-[min(42vmin,240px)] w-[min(42vmin,240px)] shrink-0">
             <svg viewBox="0 0 196 196" className="h-full w-full -rotate-90 overflow-visible">
-              <defs>
-                <filter id="agent-glow" x="-30%" y="-30%" width="160%" height="160%">
-                  <feGaussianBlur stdDeviation="4" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
               <circle
                 cx={98}
                 cy={98}
@@ -75,7 +167,8 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
                 strokeWidth={14}
               />
               {/* Round caps on a zero-length arc still paint a stray dot. */}
-              <motion.circle
+              <circle
+                ref={localRef}
                 cx={98}
                 cy={98}
                 r={RADIUS}
@@ -83,24 +176,12 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
                 stroke="var(--color-data-local)"
                 visibility={agents.local > 0 ? "visible" : "hidden"}
                 strokeLinecap="round"
+                strokeWidth={14}
                 strokeDashoffset={-ARC_GAP / 2}
-                filter="url(#agent-glow)"
-                initial={reduced ? false : { strokeDasharray: `0 ${CIRCUMFERENCE}`, strokeWidth: 14 }}
-                animate={
-                  ready
-                    ? {
-                        strokeDasharray: `${localLength} ${CIRCUMFERENCE}`,
-                        strokeWidth: hovered === "local" ? 24 : 14,
-                        opacity: hovered === "cloud" ? 0.28 : 1,
-                      }
-                    : undefined
-                }
-                transition={{
-                  strokeDasharray: { duration: 1.6, delay: 0.5, ease: [0.22, 1, 0.36, 1] },
-                  default: { duration: 0.3 },
-                }}
+                strokeDasharray={`0 ${CIRCUMFERENCE}`}
               />
-              <motion.circle
+              <circle
+                ref={cloudRef}
                 cx={98}
                 cy={98}
                 r={RADIUS}
@@ -108,22 +189,9 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
                 stroke="var(--color-data-cloud)"
                 visibility={agents.cloud > 0 ? "visible" : "hidden"}
                 strokeLinecap="round"
+                strokeWidth={14}
                 strokeDashoffset={-(CIRCUMFERENCE * agents.localShare + ARC_GAP / 2)}
-                filter="url(#agent-glow)"
-                initial={reduced ? false : { strokeDasharray: `0 ${CIRCUMFERENCE}`, strokeWidth: 14 }}
-                animate={
-                  ready
-                    ? {
-                        strokeDasharray: `${cloudLength} ${CIRCUMFERENCE}`,
-                        strokeWidth: hovered === "cloud" ? 24 : 14,
-                        opacity: hovered === "local" ? 0.28 : 1,
-                      }
-                    : undefined
-                }
-                transition={{
-                  strokeDasharray: { duration: 1.6, delay: 0.9, ease: [0.22, 1, 0.36, 1] },
-                  default: { duration: 0.3 },
-                }}
+                strokeDasharray={`0 ${CIRCUMFERENCE}`}
               />
             </svg>
 
@@ -178,8 +246,8 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
           <p className="text-ink-faint text-small mb-6 tracking-[0.3em] uppercase">
             Last 30 days
           </p>
-          <div className="flex h-28 items-end gap-[3px] sm:h-40 sm:gap-[4px]">
-            {agents.series.map((day, index) => {
+          <div ref={barsRef} className="flex h-28 items-end gap-[3px] sm:h-40 sm:gap-[4px]">
+            {agents.series.map((day) => {
               const total = day.local + day.cloud;
               const height = peakDay > 0 ? (total / peakDay) * 100 : 0;
 
@@ -191,16 +259,10 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
                   className="group relative flex h-full max-w-[28px] flex-1 flex-col justify-end"
                   title={`${formatDayLabel(day.date)}: ${day.local} local, ${day.cloud} cloud`}
                 >
-                  <motion.div
+                  <div
+                    data-agent-bar=""
                     className="flex w-full origin-bottom flex-col-reverse overflow-hidden rounded-[3px]"
                     style={{ height: `${Math.max(height, total > 0 ? 6 : 2)}%` }}
-                    initial={reduced ? false : { scaleY: 0, opacity: 0 }}
-                    animate={ready ? { scaleY: 1, opacity: 1 } : undefined}
-                    transition={{
-                      duration: 0.7,
-                      delay: 1 + index * 0.035,
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
                   >
                     <div
                       className={cx(
@@ -217,7 +279,7 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
                       style={{ flexGrow: day.cloud }}
                     />
                     {total === 0 ? <div className="bg-edge h-full w-full" /> : null}
-                  </motion.div>
+                  </div>
                 </div>
               );
             })}

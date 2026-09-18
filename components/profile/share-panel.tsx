@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useReducedMotion } from "motion/react";
 import type { StoryCard } from "@/lib/story-cards";
 import { MagneticButton } from "@/components/fx/magnetic";
 import { SplitText } from "@/components/fx/split-text";
 import { burstParticles } from "@/components/fx/particle-field";
 import { SceneItem, useScene } from "@/components/profile/scene";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 // Story mode is the exit moment, not the entry cost — it only loads when asked for.
 const StoryMode = dynamic(() => import("@/components/profile/story-mode"), {
@@ -64,7 +64,7 @@ export function FinaleScene({
           </p>
         </SceneItem>
 
-        <h2 className="text-hero drop-glow max-w-full font-bold">
+        <h2 className="text-hero max-w-full overflow-visible font-bold">
           <SplitText
             text={`@${handle}`}
             by="chars"

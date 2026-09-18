@@ -8,7 +8,6 @@ import {
   useState,
 } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   playProfile,
   type GateError,
@@ -18,8 +17,11 @@ import { LoadingCinematic } from "@/components/fx/loading-cinematic";
 import { MagneticButton } from "@/components/fx/magnetic";
 import { ParticleField } from "@/components/fx/particle-field";
 import { SplitText } from "@/components/fx/split-text";
+import { GsapSwap } from "@/components/fx/gsap-swap";
+import { gsap, useGSAP } from "@/lib/gsap";
 import { parseHandleInput } from "@/lib/handle";
 import { useMood } from "@/lib/use-mood";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 const SAMPLE_HANDLES = ["kdjadeja", "your-username", "cursor-ambassador"];
@@ -96,6 +98,10 @@ export function HandleGate({
   const inputId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const atRef = useRef<HTMLSpanElement>(null);
   const [state, formAction, pending] = useActionState<GateState, FormData>(
     playProfile,
     { error: initialError },
@@ -104,7 +110,7 @@ export function HandleGate({
   const [handle, setHandle] = useState(initialHandle);
   const [focused, setFocused] = useState(false);
   const error = pending || dismissed ? null : state.error;
-  const placeholder = useTypewriterPlaceholder(!reduced && handle.length === 0);
+  const placeholder = useTypewriterPlaceholder(reduced !== true && handle.length === 0);
 
   useMood("idle");
 
@@ -114,93 +120,115 @@ export function HandleGate({
     }
   }, [pending]);
 
+  useGSAP(
+    () => {
+      if (pending || reduced !== false) {
+        return;
+      }
+
+      const timeline = gsap.timeline({ defaults: { ease: "expo.out" } });
+
+      if (logoRef.current) {
+        timeline.fromTo(
+          logoRef.current,
+          { opacity: 0, y: -18 },
+          { opacity: 1, y: 0, duration: 0.9 },
+        );
+      }
+
+      if (pillRef.current) {
+        timeline.fromTo(
+          pillRef.current,
+          { opacity: 0, y: 22, scale: 0.97 },
+          { opacity: 1, y: 0, scale: 1, duration: 0.8 },
+          0.35,
+        );
+      }
+    },
+    { dependencies: [pending, reduced] },
+  );
+
+  useGSAP(
+    () => {
+      const at = atRef.current;
+      if (!at || reduced !== false || !focused) {
+        return;
+      }
+
+      gsap.fromTo(
+        at,
+        { scale: 1 },
+        { scale: 1.15, duration: 0.2, yoyo: true, repeat: 1, ease: "power2.out" },
+      );
+    },
+    { dependencies: [focused, reduced] },
+  );
+
   const submitAction = (formData: FormData) => {
     setDismissed(false);
     return formAction(formData);
   };
 
   return (
-    <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden">
+    <main className="relative flex flex-1 flex-col items-center justify-center overflow-x-clip">
       <ParticleField />
 
-      <AnimatePresence mode="wait" initial={false}>
-        {pending ? (
-          <motion.div
-            key="loading"
-            className="relative z-10 w-full"
-            initial={reduced ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={reduced ? undefined : { opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.4 }}
-          >
-            <LoadingCinematic
-              handle={parseHandleInput(handle)}
-              layoutId="gate-orb"
+      {pending ? (
+        <div className="relative z-10 w-full">
+          <LoadingCinematic handle={parseHandleInput(handle)} />
+        </div>
+      ) : (
+        <form
+          ref={formRef}
+          action={submitAction}
+          className="relative z-10 flex w-full max-w-4xl flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16"
+        >
+          <div ref={logoRef} className="float mb-10">
+            <Image
+              src="/cursor-lockup.svg"
+              alt="Cursor"
+              width={220}
+              height={53}
+              priority
+              className="h-12 w-auto drop-shadow-[0_0_28px_rgba(245,78,0,0.45)] sm:h-16"
             />
-          </motion.div>
-        ) : (
-          <motion.form
-            key="form"
-            action={submitAction}
-            className="relative z-10 flex w-full max-w-4xl flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16"
-            initial={reduced ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={reduced ? undefined : { opacity: 0, y: -20, filter: "blur(10px)" }}
-            transition={{ duration: 0.45 }}
+          </div>
+
+          <p className="text-accent text-micro mb-5 tracking-[0.32em] uppercase">
+            <SplitText text="The year in code" by="words" delay={0.3} />
+          </p>
+
+          <h1 className="text-hero max-w-[12ch] overflow-visible font-bold sm:max-w-none">
+            <SplitText
+              text="Whose year is it?"
+              by="words"
+              delay={0.45}
+              unitClassName="gradient-ink"
+              caret
+            />
+          </h1>
+
+          <div
+            ref={pillRef}
+            className={cx(
+              "glass mt-8 flex w-full max-w-3xl flex-col items-stretch gap-3 rounded-3xl p-3 transition-[box-shadow,border-color] duration-500 sm:mt-12 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:py-2 sm:pr-2 sm:pl-7",
+              focused && !error && "border-accent/60 shadow-glow",
+              error &&
+                "border-danger bg-danger/10 shadow-[0_0_70px_-8px_var(--color-danger),inset_0_0_40px_-20px_var(--color-danger)]",
+              error && reduced !== true && "animate-[shake_0.5s_ease-in-out]",
+            )}
           >
-            <motion.div
-              initial={reduced ? false : { opacity: 0, y: -18, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-              className="float mb-10"
-            >
-              <Image
-                src="/cursor-lockup.svg"
-                alt="Cursor"
-                width={220}
-                height={53}
-                priority
-                className="h-12 w-auto drop-shadow-[0_0_28px_rgba(245,78,0,0.45)] sm:h-16"
-              />
-            </motion.div>
-
-            <p className="text-accent text-micro mb-5 tracking-[0.32em] uppercase">
-              <SplitText text="The year in code" by="words" delay={0.3} />
-            </p>
-
-            <h1 className="text-hero drop-glow max-w-[12ch] font-bold sm:max-w-none">
-              <SplitText
-                text="Whose year is it?"
-                by="chars"
-                delay={0.45}
-                unitClassName="gradient-ink"
-                caret
-              />
-            </h1>
-
-            <motion.div
-              layoutId="gate-orb"
-              transition={{ type: "spring", stiffness: 90, damping: 18 }}
-              className={cx(
-                "glass mt-8 flex w-full max-w-3xl flex-col items-stretch gap-3 rounded-3xl p-3 transition-[box-shadow,border-color] duration-500 sm:mt-12 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:py-2 sm:pr-2 sm:pl-7",
-                focused && !error && "border-accent/60 shadow-glow",
-                error &&
-                  "border-danger bg-danger/10 shadow-[0_0_70px_-8px_var(--color-danger),inset_0_0_40px_-20px_var(--color-danger)]",
-                error && !reduced && "animate-[shake_0.5s_ease-in-out]",
-              )}
-            >
-              <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-0">
-              <motion.span
+            <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-0">
+              <span
+                ref={atRef}
                 aria-hidden="true"
                 className={cx(
-                  "text-heading sm:text-display font-semibold transition-colors duration-300",
+                  "text-heading sm:text-display inline-block font-semibold transition-colors duration-300",
                   focused ? "text-accent text-glow" : "text-ink-faint",
                 )}
-                animate={focused && !reduced ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-                transition={{ duration: 0.4 }}
               >
                 @
-              </motion.span>
+              </span>
               <label htmlFor={inputId} className="sr-only">
                 Username
               </label>
@@ -227,37 +255,31 @@ export function HandleGate({
                 }}
                 className="text-title sm:text-display text-ink placeholder:text-ink-faint/60 min-w-0 flex-1 bg-transparent py-3 font-semibold outline-none sm:py-4"
               />
-              </div>
-              <MagneticButton type="submit" size="lg" className="w-full shrink-0 sm:w-auto">
-                Play
-                <span aria-hidden="true" className="text-xl leading-none">
-                  →
-                </span>
-              </MagneticButton>
-            </motion.div>
-
-            <div className="relative mt-6 h-[1.8em] w-full">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.p
-                  key={error ?? "hint"}
-                  id={errorId}
-                  role={error ? "alert" : undefined}
-                  initial={reduced ? false : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={reduced ? undefined : { opacity: 0, y: -8 }}
-                  transition={{ duration: 0.3 }}
-                  className={cx(
-                    "text-base absolute inset-x-0",
-                    error ? "text-danger-text" : "text-ink-faint",
-                  )}
-                >
-                  {error ? errorCopy(error) : "Public profiles only. Press Enter to play."}
-                </motion.p>
-              </AnimatePresence>
             </div>
-          </motion.form>
-        )}
-      </AnimatePresence>
+            <MagneticButton type="submit" size="lg" className="w-full shrink-0 sm:w-auto">
+              Play
+              <span aria-hidden="true" className="text-xl leading-none">
+                →
+              </span>
+            </MagneticButton>
+          </div>
+
+          <div className="relative mt-6 h-[1.8em] w-full">
+            <GsapSwap id={error ?? "hint"} className="absolute inset-x-0">
+              <p
+                id={errorId}
+                role={error ? "alert" : undefined}
+                className={cx(
+                  "text-base",
+                  error ? "text-danger-text" : "text-ink-faint",
+                )}
+              >
+                {error ? errorCopy(error) : "Public profiles only. Press Enter to play."}
+              </p>
+            </GsapSwap>
+          </div>
+        </form>
+      )}
     </main>
   );
 }

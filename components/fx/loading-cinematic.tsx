@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { GsapSwap } from "@/components/fx/gsap-swap";
 import { useMood } from "@/lib/use-mood";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 const STATUS_LINES = [
@@ -21,15 +23,15 @@ const LINE_MS = 1400;
  */
 export function LoadingCinematic({
   handle,
-  layoutId,
   className,
 }: {
   handle?: string | null;
-  /** Lets the gate morph its input pill into the orb. */
-  layoutId?: string;
   className?: string;
 }) {
   const reduced = useReducedMotion();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const orbRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLParagraphElement>(null);
   const [line, setLine] = useState(0);
   useMood("loading");
 
@@ -41,8 +43,34 @@ export function LoadingCinematic({
     return () => clearInterval(timer);
   }, []);
 
+  useGSAP(
+    () => {
+      if (reduced !== false) {
+        return;
+      }
+
+      if (orbRef.current) {
+        gsap.fromTo(
+          orbRef.current,
+          { opacity: 0, scale: 0.82 },
+          { opacity: 1, scale: 1, duration: 0.85, ease: "expo.out" },
+        );
+      }
+
+      if (handleRef.current) {
+        gsap.fromTo(
+          handleRef.current,
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.7, delay: 0.15, ease: "expo.out" },
+        );
+      }
+    },
+    { scope: rootRef, dependencies: [reduced, handle] },
+  );
+
   return (
     <div
+      ref={rootRef}
       role="status"
       aria-live="polite"
       aria-label={handle ? `Loading @${handle}` : "Loading profile"}
@@ -51,10 +79,9 @@ export function LoadingCinematic({
         className,
       )}
     >
-      <motion.div
-        layoutId={layoutId}
+      <div
+        ref={orbRef}
         className="relative flex h-[min(42vmin,280px)] w-[min(42vmin,280px)] items-center justify-center"
-        transition={{ type: "spring", stiffness: 90, damping: 18 }}
       >
         <div aria-hidden="true" className="absolute inset-0">
           <div className="pulse-ring border-accent/50 absolute inset-0 rounded-full border" />
@@ -85,41 +112,30 @@ export function LoadingCinematic({
           aria-hidden="true"
           className={cx(
             "bg-accent shadow-glow-lg relative h-[34%] w-[34%] rounded-full",
-            !reduced && "breathe",
+            reduced !== true && "breathe",
           )}
           style={{
             background:
               "radial-gradient(circle at 35% 30%, var(--color-ember), var(--color-accent) 55%, var(--color-accent-deep) 100%)",
           }}
         />
-      </motion.div>
+      </div>
 
       <div className="mt-10 flex flex-col items-center gap-4">
         {handle ? (
-          <motion.p
-            initial={reduced ? false : { opacity: 0, y: 16, filter: "blur(8px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          <p
+            ref={handleRef}
             className="text-display sm:text-hero gradient-ink font-semibold break-all"
           >
             @{handle}
-          </motion.p>
+          </p>
         ) : null}
 
         <div className="text-ink-muted text-lead relative h-[1.6em] w-full">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={line}
-              initial={reduced ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduced ? undefined : { opacity: 0, y: -10 }}
-              transition={{ duration: 0.35 }}
-              className="absolute inset-x-0"
-            >
-              {STATUS_LINES[line]}
-              <span className="text-accent">…</span>
-            </motion.span>
-          </AnimatePresence>
+          <GsapSwap id={STATUS_LINES[line]} className="absolute inset-x-0">
+            {STATUS_LINES[line]}
+            <span className="text-accent">…</span>
+          </GsapSwap>
         </div>
 
         <div

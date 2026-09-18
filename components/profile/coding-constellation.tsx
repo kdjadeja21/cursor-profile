@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { Calendar, CalendarCell } from "@/lib/derive";
 import { useIsClient } from "@/lib/use-is-client";
 import { formatCompactNumber, formatDayLabel } from "@/lib/derive";
 import { SceneItem, useScene } from "@/components/profile/scene";
+import { GsapSwap } from "@/components/fx/gsap-swap";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 const LEVEL_CLASS: Record<CalendarCell["level"], string> = {
@@ -38,7 +40,7 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
 
   // Cells are only hidden ahead of the wave once JS has taken over, so the
   // server-rendered grid and the reduced-motion path both stay fully visible.
-  const armed = useIsClient() && !reduced;
+  const armed = useIsClient() && reduced === false;
   const waving = armed && ready;
   const hidden = armed && !ready;
 
@@ -71,6 +73,29 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
       ?.focus();
   }, [focus]);
 
+  useGSAP(
+    () => {
+      const grid = gridRef.current;
+      if (!grid || !waving) {
+        return;
+      }
+
+      const cells = grid.querySelectorAll("[data-cell]");
+      gsap.fromTo(
+        cells,
+        { opacity: 0, scale: 0.45 },
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.45,
+          stagger: { amount: 1.05, from: "start" },
+          ease: "power2.out",
+        },
+      );
+    },
+    { dependencies: [waving] },
+  );
+
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       const moves: Record<string, [number, number]> = {
@@ -101,6 +126,7 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
   );
 
   const peakDate = calendar.busiestDay?.date;
+  const readoutId = active ? active.date : "summary";
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_minmax(220px,300px)] lg:items-end lg:gap-10">
@@ -172,26 +198,20 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
                         onBlur={() => setActive(null)}
                         onMouseEnter={() => setActive(cell)}
                         className={cx(
-                          "focus-visible:ring-ink relative aspect-square rounded-[4px] transition-transform duration-150 outline-none hover:z-10 hover:scale-125 focus-visible:ring-2",
+                          "focus-visible:ring-ink relative aspect-square rounded-[4px] outline-none hover:z-10 hover:scale-125 focus-visible:ring-2",
                           cell.inRange ? LEVEL_CLASS[cell.level] : "bg-white/[0.02]",
                           hidden && "opacity-0",
-                          waving && "animate-[fade-in_0.5s_ease-out_backwards]",
                         )}
-                        style={
-                          waving
-                            ? { animationDelay: `${300 + weekIndex * 32 + dayIndex * 10}ms` }
-                            : undefined
-                        }
                       >
-                        {cell.inRange && cell.level === 4 && !reduced ? (
+                        {cell.inRange && cell.level === 4 && reduced !== true ? (
                           // Twinkles fall out of sync so the grid shimmers rather than blinks.
                           <span
                             aria-hidden="true"
                             className="twinkle bg-ember absolute inset-0 rounded-[4px]"
-                            style={{ animationDelay: `${(weekIndex * 7 + dayIndex) % 11 * 0.2}s` }}
+                            style={{ animationDelay: `${((weekIndex * 7 + dayIndex) % 11) * 0.2}s` }}
                           />
                         ) : null}
-                        {isPeak && !reduced ? (
+                        {isPeak && reduced !== true ? (
                           <span
                             aria-hidden="true"
                             className="pulse-ring border-ember absolute inset-[-3px] rounded-full border-2"
@@ -227,15 +247,8 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
             <p className="text-ink-faint text-small mb-3 tracking-[0.3em] uppercase">
               {active ? "Selected day" : "Consistency"}
             </p>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={active ? active.date : "summary"}
-                initial={reduced ? false : { opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduced ? undefined : { opacity: 0, y: -10 }}
-                transition={{ duration: 0.22 }}
-                aria-live="polite"
-              >
+            <GsapSwap id={readoutId}>
+              <div aria-live="polite">
                 {active ? (
                   <>
                     <p className="text-display text-ink tabular font-bold">
@@ -263,8 +276,8 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
                     </p>
                   </>
                 )}
-              </motion.div>
-            </AnimatePresence>
+              </div>
+            </GsapSwap>
           </div>
         </SceneItem>
 

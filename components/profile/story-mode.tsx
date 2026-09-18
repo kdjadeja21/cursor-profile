@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { StoryCard } from "@/lib/story-cards";
 import { MagneticButton } from "@/components/fx/magnetic";
 import { SplitText } from "@/components/fx/split-text";
+import { GsapFill } from "@/components/fx/gsap-fill";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 const CARD_MS = 4600;
@@ -25,6 +27,7 @@ export default function StoryMode({
   const [index, setIndex] = useState(0);
   const [copied, setCopied] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const card = cards[index];
   const isLast = index === cards.length - 1;
@@ -85,6 +88,53 @@ export default function StoryMode({
     return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, [go, onClose]);
 
+  useGSAP(
+    () => {
+      const dialog = dialogRef.current;
+      if (!dialog || reduced !== false) {
+        return;
+      }
+
+      gsap.fromTo(dialog, { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" });
+    },
+    { dependencies: [reduced] },
+  );
+
+  useGSAP(
+    () => {
+      const node = cardRef.current;
+      if (!node || reduced !== false) {
+        return;
+      }
+
+      const caption = node.querySelector("[data-story-caption]");
+      const actions = node.querySelector("[data-story-actions]");
+
+      gsap.fromTo(
+        node,
+        { opacity: 0, y: 36, scale: 0.94 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.55, ease: "power3.out" },
+      );
+
+      if (caption) {
+        gsap.fromTo(
+          caption,
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.6, delay: 0.55, ease: "expo.out" },
+        );
+      }
+
+      if (actions) {
+        gsap.fromTo(
+          actions,
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.6, delay: 0.85, ease: "expo.out" },
+        );
+      }
+    },
+    { dependencies: [card.id, reduced] },
+  );
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -97,16 +147,13 @@ export default function StoryMode({
   // Portaled to <body>: the scenes sit inside a transformed wrapper, which would
   // otherwise become the containing block and shrink this "fixed" overlay to a card.
   return createPortal(
-    <motion.div
+    <div
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`${displayName} story recap`}
       tabIndex={-1}
-      initial={reduced ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="bg-surface/85 fixed inset-0 z-50 flex flex-col backdrop-blur-2xl outline-none"
+      className="bg-surface/85 fixed inset-0 z-50 flex flex-col outline-none"
     >
       <div
         aria-hidden="true"
@@ -120,23 +167,28 @@ export default function StoryMode({
       <div className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-5 sm:px-6 sm:py-8">
         <div className="flex gap-2" aria-hidden="true">
           {cards.map((entry, position) => {
-            // The active bar fills across the card's own dwell time, so the bar doubles
-            // as the countdown to the next card.
-            const ticking = position === index && !reduced && !isLast;
+            const ticking = position === index && reduced !== true && !isLast;
 
             return (
               <div
                 key={entry.id}
                 className="bg-edge h-1 flex-1 overflow-hidden rounded-full"
               >
-                <div
-                  className={cx(
-                    "bg-accent h-full origin-left rounded-full shadow-[0_0_10px_var(--color-accent)]",
-                    ticking && "animate-[progress-fill_linear_forwards]",
-                    !ticking && (position <= index ? "scale-x-100" : "scale-x-0"),
-                  )}
-                  style={ticking ? { animationDuration: `${CARD_MS}ms` } : undefined}
-                />
+                {ticking ? (
+                  <GsapFill
+                    play
+                    duration={CARD_MS / 1000}
+                    ease="none"
+                    className="bg-accent h-full rounded-full shadow-[0_0_10px_var(--color-accent)]"
+                  />
+                ) : (
+                  <div
+                    className={cx(
+                      "bg-accent h-full origin-left rounded-full shadow-[0_0_10px_var(--color-accent)]",
+                      position <= index ? "scale-x-100" : "scale-x-0",
+                    )}
+                  />
+                )}
               </div>
             );
           })}
@@ -155,60 +207,46 @@ export default function StoryMode({
           </button>
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center">
-          {/* popLayout lets the next card rise in while the last one is still leaving. */}
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={card.id}
-              initial={reduced ? false : { opacity: 0, y: 40, scale: 0.92, filter: "blur(14px)" }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-              exit={reduced ? undefined : { opacity: 0, y: -40, scale: 1.04, filter: "blur(14px)" }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full text-center"
+        <div className="relative flex flex-1 items-center justify-center overflow-visible">
+          <div ref={cardRef} className="w-full overflow-visible text-center">
+            <p className="text-accent text-small mb-8 tracking-[0.32em] uppercase">
+              {card.eyebrow}
+            </p>
+            <p
+              className={cx(
+                "tabular overflow-visible font-extrabold",
+                card.isFinale ? "text-hero" : "text-hero sm:text-giant",
+              )}
             >
-              <p className="text-accent text-small mb-8 tracking-[0.32em] uppercase">
-                {card.eyebrow}
-              </p>
-              <p
-                className={cx(
-                  "tabular drop-glow font-extrabold",
-                  card.isFinale ? "text-hero" : "text-hero sm:text-giant",
-                )}
-              >
-                <SplitText
-                  text={card.value}
-                  by="chars"
-                  delay={0.15}
-                  stagger={0.045}
-                  unitClassName={card.isFinale ? "gradient-ink" : "gradient-accent"}
-                />
-              </p>
-              <motion.p
-                initial={reduced ? false : { opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.7 }}
-                className="text-ink-muted text-title mx-auto mt-10 max-w-2xl font-normal"
-              >
-                {card.caption}
-              </motion.p>
+              <SplitText
+                text={card.value}
+                by={card.value.length > 12 ? "words" : "chars"}
+                delay={0.15}
+                stagger={0.045}
+                unitClassName={card.isFinale ? "gradient-ink" : "gradient-accent"}
+              />
+            </p>
+            <p
+              data-story-caption=""
+              className="text-ink-muted text-title mx-auto mt-10 max-w-2xl font-normal"
+            >
+              {card.caption}
+            </p>
 
-              {card.isFinale ? (
-                <motion.div
-                  initial={reduced ? false : { opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 1 }}
-                  className="mt-12 flex flex-wrap items-center justify-center gap-4"
-                >
-                  <MagneticButton size="lg" onClick={copyLink}>
-                    {copied ? "Link copied" : "Copy link"}
-                  </MagneticButton>
-                  <MagneticButton size="lg" variant="ghost" onClick={() => setIndex(0)}>
-                    Replay
-                  </MagneticButton>
-                </motion.div>
-              ) : null}
-            </motion.div>
-          </AnimatePresence>
+            {card.isFinale ? (
+              <div
+                data-story-actions=""
+                className="mt-12 flex flex-wrap items-center justify-center gap-4"
+              >
+                <MagneticButton size="lg" onClick={copyLink}>
+                  {copied ? "Link copied" : "Copy link"}
+                </MagneticButton>
+                <MagneticButton size="lg" variant="ghost" onClick={() => setIndex(0)}>
+                  Replay
+                </MagneticButton>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex items-center justify-between">
@@ -233,7 +271,7 @@ export default function StoryMode({
           </button>
         </div>
       </div>
-    </motion.div>,
+    </div>,
     document.body,
   );
 }

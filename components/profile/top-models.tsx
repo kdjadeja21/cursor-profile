@@ -1,9 +1,9 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
 import type { TopModel } from "@/lib/cursor-profile";
 import { CountUp } from "@/components/profile/primitives/count-up";
 import { TiltCard } from "@/components/fx/tilt-card";
+import { GsapFill } from "@/components/fx/gsap-fill";
 import { SceneItem, useScene } from "@/components/profile/scene";
 import { cx } from "@/lib/cx";
 
@@ -41,7 +41,6 @@ function ModelCard({
   delay: number;
 }) {
   const { ready } = useScene();
-  const reduced = useReducedMotion();
   const tone = vendorTone(model.vendor);
 
   return (
@@ -101,16 +100,16 @@ function ModelCard({
             </span>
           </p>
           <div className="bg-edge mt-3 h-1.5 overflow-hidden rounded-full sm:mt-5">
-            <motion.div
-              className="h-full origin-left rounded-full"
+            <GsapFill
+              play={ready}
+              duration={1.2}
+              delay={delay + 0.3}
+              className="h-full rounded-full"
               style={{
                 width: `${Math.max(share * 100, 4)}%`,
                 background: tone,
                 boxShadow: `0 0 12px ${tone}`,
               }}
-              initial={reduced ? false : { scaleX: 0 }}
-              animate={ready ? { scaleX: 1 } : undefined}
-              transition={{ duration: 1.2, delay: delay + 0.3, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
         </div>

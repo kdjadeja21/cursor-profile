@@ -1,11 +1,23 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { useRef } from "react";
 import type { SceneDefinition } from "@/components/profile/scene";
+import { gsap, useGSAP, EASE_IN_OUT } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 export function scrollToScene(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const target = document.getElementById(id);
+  if (!target) {
+    return;
+  }
+
+  gsap.to(window, {
+    scrollTo: { y: target, autoKill: true },
+    duration: 0.85,
+    ease: EASE_IN_OUT,
+    overwrite: true,
+  });
 }
 
 /** Fixed progress rail. The active marker slides between stops rather than jumping. */
@@ -19,16 +31,61 @@ export function SceneRail({
   onJump: (index: number) => void;
 }) {
   const reduced = useReducedMotion();
+  const navRef = useRef<HTMLElement>(null);
+  const listRef = useRef<HTMLOListElement>(null);
+  const ringRef = useRef<HTMLSpanElement>(null);
+
+  useGSAP(
+    () => {
+      const nav = navRef.current;
+      if (!nav || reduced !== false) {
+        return;
+      }
+
+      gsap.fromTo(
+        nav,
+        { opacity: 0, x: 24 },
+        { opacity: 1, x: 0, duration: 0.8, delay: 1.2, ease: "expo.out" },
+      );
+    },
+    { dependencies: [reduced] },
+  );
+
+  useGSAP(
+    () => {
+      const list = listRef.current;
+      const ring = ringRef.current;
+      if (!list || !ring) {
+        return;
+      }
+
+      const button = list.querySelectorAll("button")[activeIndex];
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+
+      gsap.to(ring, {
+        y: button.offsetTop + button.offsetHeight / 2 - ring.offsetHeight / 2,
+        duration: reduced === false ? 0.45 : 0,
+        ease: "expo.out",
+        overwrite: "auto",
+      });
+    },
+    { dependencies: [activeIndex, reduced, scenes.length] },
+  );
 
   return (
-    <motion.nav
+    <nav
+      ref={navRef}
       aria-label="Scenes"
-      initial={reduced ? false : { opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.8, delay: 1.2 }}
       className="fixed top-1/2 right-2 z-40 hidden -translate-y-1/2 md:block lg:right-5"
     >
-      <ol className="flex flex-col gap-3">
+      <ol ref={listRef} className="relative flex flex-col gap-3">
+        <span
+          ref={ringRef}
+          aria-hidden="true"
+          className="border-accent shadow-glow pointer-events-none absolute top-0 right-0 h-5 w-5 rounded-full border"
+        />
         {scenes.map((scene, index) => {
           const isActive = index === activeIndex;
           return (
@@ -57,18 +114,11 @@ export function SceneRail({
                     isActive ? "bg-accent" : "bg-ink/30 group-hover:bg-ink/60",
                   )}
                 />
-                {isActive ? (
-                  <motion.span
-                    layoutId="scene-rail-ring"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    className="border-accent shadow-glow absolute inset-0 rounded-full border"
-                  />
-                ) : null}
               </button>
             </li>
           );
         })}
       </ol>
-    </motion.nav>
+    </nav>
   );
 }
