@@ -121,7 +121,7 @@ function ModelCard({
             </div>
           )}
 
-          <div className={cx(featured ? "mt-8 sm:mt-10" : "mt-4")}>
+          <div className={cx("mt-auto", featured ? "pt-8 sm:pt-10" : "pt-4")}>
             <p
               className={cx(
                 "tabular font-extrabold leading-none",
