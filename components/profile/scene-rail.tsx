@@ -60,13 +60,19 @@ export function SceneRail({
         return;
       }
 
-      const button = list.querySelectorAll("button")[activeIndex];
-      if (!(button instanceof HTMLElement)) {
+      // Measure the <li>, not the button: button.offsetTop is relative to the
+      // row, so it is always ~0 and the ring stayed parked on the first stop.
+      const item = list.querySelectorAll<HTMLLIElement>(":scope > li")[activeIndex];
+      if (!item) {
         return;
       }
 
+      const listBox = list.getBoundingClientRect();
+      const itemBox = item.getBoundingClientRect();
+      const y = itemBox.top - listBox.top;
+
       gsap.to(ring, {
-        y: button.offsetTop + button.offsetHeight / 2 - ring.offsetHeight / 2,
+        y,
         duration: reduced === false ? 0.45 : 0,
         ease: "expo.out",
         overwrite: "auto",
