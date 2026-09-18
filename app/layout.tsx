@@ -12,8 +12,8 @@ const siteUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Cursor Ambassadors",
-  description: "Coding activity, told like a highlight reel.",
+  title: "Cursor",
+  description: "Look up a Cursor profile.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { parseHandleInput } from "@/lib/handle";
@@ -114,13 +115,15 @@ export function HandleGate() {
         onSubmit={onSubmit}
         className="relative flex w-full max-w-xl flex-col items-center text-center"
       >
-        <p className="text-ink-faint text-micro mb-5 tracking-[0.28em] uppercase">
-          Cursor ambassadors
-        </p>
+        <Image
+          src="/cursor-lockup.svg"
+          alt="Cursor"
+          width={220}
+          height={53}
+          priority
+          className="mb-8 h-12 w-auto sm:h-14"
+        />
         <h1 className="text-display sm:text-hero text-ink">Whose year is it?</h1>
-        <p className="text-ink-muted text-lead mt-4 max-w-md">
-          Type a handle. The highlight reel plays itself.
-        </p>
 
         <div
           className={cx(
