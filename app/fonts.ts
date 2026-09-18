@@ -13,5 +13,5 @@ export const displayFont = Inter_Tight({
   subsets: ["latin"],
   variable: "--font-display-family",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
 });

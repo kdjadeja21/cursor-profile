@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import type { AgentTotals } from "@/lib/derive";
-import { formatDayLabel } from "@/lib/derive";
+import { useRef, useState } from "react";
+import {
+  formatCompactNumber,
+  formatDayLabel,
+  formatFullNumber,
+  type AgentTotals,
+} from "@/lib/derive";
+import { CountUp } from "@/components/profile/primitives/count-up";
+import { SceneItem, useScene } from "@/components/profile/scene";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 type Slice = "local" | "cloud";
@@ -12,8 +20,32 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 /** Keeps the two arcs from reading as a single continuous ring once the round caps meet. */
 const ARC_GAP = 18;
 
+const SLICES: { slice: Slice; colour: string; dot: string; glow: string }[] = [
+  {
+    slice: "local",
+    colour: "var(--color-data-local)",
+    dot: "bg-data-local",
+    glow: "shadow-[0_0_14px_var(--color-data-local)]",
+  },
+  {
+    slice: "cloud",
+    colour: "var(--color-data-cloud)",
+    dot: "bg-data-cloud",
+    glow: "shadow-[0_0_14px_var(--color-data-cloud)]",
+  },
+];
+
+function formatAgentCount(value: number): string {
+  return value >= 1000 ? formatCompactNumber(value) : formatFullNumber(value);
+}
+
 export function AgentMix({ agents }: { agents: AgentTotals }) {
   const [hovered, setHovered] = useState<Slice | null>(null);
+  const { ready } = useScene();
+  const reduced = useReducedMotion();
+  const localRef = useRef<SVGCircleElement>(null);
+  const cloudRef = useRef<SVGCircleElement>(null);
+  const barsRef = useRef<HTMLDivElement>(null);
 
   const centre =
     hovered === "local"
@@ -28,144 +60,254 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
     0,
   );
 
+  const localLength = Math.max(0, CIRCUMFERENCE * agents.localShare - ARC_GAP);
+  const cloudLength = Math.max(0, CIRCUMFERENCE * agents.cloudShare - ARC_GAP);
+
+  useGSAP(
+    () => {
+      const local = localRef.current;
+      const cloud = cloudRef.current;
+
+      if (reduced !== false || !ready) {
+        if (reduced && local) {
+          gsap.set(local, { strokeDasharray: `${localLength} ${CIRCUMFERENCE}` });
+        }
+        if (reduced && cloud) {
+          gsap.set(cloud, { strokeDasharray: `${cloudLength} ${CIRCUMFERENCE}` });
+        }
+        return;
+      }
+
+      if (local) {
+        gsap.fromTo(
+          local,
+          { strokeDasharray: `0 ${CIRCUMFERENCE}` },
+          {
+            strokeDasharray: `${localLength} ${CIRCUMFERENCE}`,
+            duration: 1.6,
+            delay: 0.5,
+            ease: "power3.out",
+          },
+        );
+      }
+
+      if (cloud) {
+        gsap.fromTo(
+          cloud,
+          { strokeDasharray: `0 ${CIRCUMFERENCE}` },
+          {
+            strokeDasharray: `${cloudLength} ${CIRCUMFERENCE}`,
+            duration: 1.6,
+            delay: 0.9,
+            ease: "power3.out",
+          },
+        );
+      }
+    },
+    { dependencies: [ready, reduced, localLength, cloudLength] },
+  );
+
+  useGSAP(
+    () => {
+      if (!ready) {
+        return;
+      }
+
+      if (localRef.current) {
+        gsap.to(localRef.current, {
+          strokeWidth: hovered === "local" ? 24 : 14,
+          opacity: hovered === "cloud" ? 0.28 : 1,
+          duration: 0.3,
+          ease: "power2.out",
+          overwrite: "auto",
+        });
+      }
+
+      if (cloudRef.current) {
+        gsap.to(cloudRef.current, {
+          strokeWidth: hovered === "cloud" ? 24 : 14,
+          opacity: hovered === "local" ? 0.28 : 1,
+          duration: 0.3,
+          ease: "power2.out",
+          overwrite: "auto",
+        });
+      }
+    },
+    { dependencies: [hovered, ready] },
+  );
+
+  useGSAP(
+    () => {
+      const root = barsRef.current;
+      if (!root || reduced !== false || !ready) {
+        return;
+      }
+
+      gsap.fromTo(
+        root.querySelectorAll("[data-agent-bar]"),
+        { scaleY: 0, opacity: 0 },
+        {
+          scaleY: 1,
+          opacity: 1,
+          duration: 0.7,
+          stagger: 0.035,
+          delay: 1,
+          ease: "power3.out",
+          transformOrigin: "center bottom",
+        },
+      );
+    },
+    { dependencies: [ready, reduced] },
+  );
+
   return (
     <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-center lg:gap-12">
-      <div className="flex items-center gap-8">
-        <div className="relative h-[196px] w-[196px] shrink-0">
-          <svg viewBox="0 0 196 196" className="h-full w-full -rotate-90">
-            <circle
-              cx={98}
-              cy={98}
-              r={RADIUS}
-              fill="none"
-              stroke="var(--color-edge)"
-              strokeWidth={14}
-            />
-            {/* Round caps on a zero-length arc still paint a stray dot. */}
-            <circle
-              cx={98}
-              cy={98}
-              r={RADIUS}
-              fill="none"
-              stroke="var(--color-data-local)"
-              visibility={agents.local > 0 ? "visible" : "hidden"}
-              strokeWidth={hovered === "local" ? 24 : 14}
-              strokeLinecap="round"
-              strokeDasharray={`${Math.max(0, CIRCUMFERENCE * agents.localShare - ARC_GAP)} ${CIRCUMFERENCE}`}
-              strokeDashoffset={-ARC_GAP / 2}
-              opacity={hovered === "cloud" ? 0.28 : 1}
-              className="transition-all duration-300 ease-out"
-            />
-            <circle
-              cx={98}
-              cy={98}
-              r={RADIUS}
-              fill="none"
-              stroke="var(--color-data-cloud)"
-              visibility={agents.cloud > 0 ? "visible" : "hidden"}
-              strokeWidth={hovered === "cloud" ? 24 : 14}
-              strokeLinecap="round"
-              strokeDasharray={`${Math.max(0, CIRCUMFERENCE * agents.cloudShare - ARC_GAP)} ${CIRCUMFERENCE}`}
-              strokeDashoffset={-(CIRCUMFERENCE * agents.localShare + ARC_GAP / 2)}
-              opacity={hovered === "local" ? 0.28 : 1}
-              className="transition-all duration-300 ease-out"
-            />
-          </svg>
+      <div className="flex flex-col items-center gap-10 sm:flex-row sm:gap-12">
+        <SceneItem from="scale" delay={0.2}>
+          <div className="relative h-[min(42vmin,240px)] w-[min(42vmin,240px)] shrink-0">
+            <svg viewBox="0 0 196 196" className="h-full w-full -rotate-90 overflow-visible">
+              <circle
+                cx={98}
+                cy={98}
+                r={RADIUS}
+                fill="none"
+                stroke="var(--color-edge)"
+                strokeWidth={14}
+              />
+              {/* Round caps on a zero-length arc still paint a stray dot. */}
+              <circle
+                ref={localRef}
+                cx={98}
+                cy={98}
+                r={RADIUS}
+                fill="none"
+                stroke="var(--color-data-local)"
+                visibility={agents.local > 0 ? "visible" : "hidden"}
+                strokeLinecap="round"
+                strokeWidth={14}
+                strokeDashoffset={-ARC_GAP / 2}
+                strokeDasharray={`0 ${CIRCUMFERENCE}`}
+              />
+              <circle
+                ref={cloudRef}
+                cx={98}
+                cy={98}
+                r={RADIUS}
+                fill="none"
+                stroke="var(--color-data-cloud)"
+                visibility={agents.cloud > 0 ? "visible" : "hidden"}
+                strokeLinecap="round"
+                strokeWidth={14}
+                strokeDashoffset={-(CIRCUMFERENCE * agents.localShare + ARC_GAP / 2)}
+                strokeDasharray={`0 ${CIRCUMFERENCE}`}
+              />
+            </svg>
 
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-display tabular text-ink leading-none">
-              {centre.value}
-            </span>
-            <span className="text-ink-faint text-micro mt-2 tracking-[0.16em] uppercase">
-              {centre.label}
-            </span>
-          </div>
-        </div>
-
-        <ul className="flex flex-col gap-3">
-          {(
-            [
-              { slice: "local" as const, value: agents.local, colour: "bg-data-local" },
-              { slice: "cloud" as const, value: agents.cloud, colour: "bg-data-cloud" },
-            ]
-          ).map(({ slice, value, colour }) => (
-            <li key={slice}>
-              <button
-                type="button"
-                onMouseEnter={() => setHovered(slice)}
-                onMouseLeave={() => setHovered(null)}
-                onFocus={() => setHovered(slice)}
-                onBlur={() => setHovered(null)}
-                className={cx(
-                  "focus-visible:ring-ink flex items-center gap-3 rounded-lg px-2 py-1 text-left transition-opacity outline-none focus-visible:ring-2",
-                  hovered && hovered !== slice && "opacity-50",
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-hero text-ink tabular font-extrabold leading-none">
+                {hovered ? (
+                  formatAgentCount(centre.value)
+                ) : (
+                  <CountUp
+                    amount={agents.total}
+                    kind={agents.total >= 1000 ? "compact" : "integer"}
+                    start={ready}
+                    delay={0.6}
+                    duration={1.8}
+                  />
                 )}
-              >
-                <span className={cx("h-2.5 w-2.5 rounded-full", colour)} />
-                <span className="text-ink text-base capitalize">{slice}</span>
-                <span className="text-ink-faint text-small tabular whitespace-nowrap">
-                  {value} ·{" "}
-                  {Math.round(
-                    (slice === "local" ? agents.localShare : agents.cloudShare) *
-                      100,
-                  )}
-                  %
-                </span>
-              </button>
-            </li>
-          ))}
+              </span>
+              <span className="text-ink-faint text-small mt-3 tracking-[0.3em] uppercase">
+                {centre.label}
+              </span>
+            </div>
+          </div>
+        </SceneItem>
+
+        <ul className="flex flex-col gap-4">
+          {SLICES.map(({ slice, dot, glow }, index) => {
+            const value = slice === "local" ? agents.local : agents.cloud;
+            const share = slice === "local" ? agents.localShare : agents.cloudShare;
+            return (
+              <li key={slice}>
+                <SceneItem delay={0.7 + index * 0.15} from="left">
+                  <button
+                    type="button"
+                    onMouseEnter={() => setHovered(slice)}
+                    onMouseLeave={() => setHovered(null)}
+                    onFocus={() => setHovered(slice)}
+                    onBlur={() => setHovered(null)}
+                    className={cx(
+                      "glass focus-visible:ring-ink flex items-center gap-4 rounded-2xl px-5 py-4 text-left transition-[opacity,transform] duration-300 outline-none hover:scale-[1.03] focus-visible:ring-2",
+                      hovered && hovered !== slice && "opacity-50",
+                    )}
+                  >
+                    <span className={cx("h-3.5 w-3.5 rounded-full", dot, glow)} />
+                    <span className="text-title text-ink font-semibold capitalize">{slice}</span>
+                    <span className="text-ink-faint text-base tabular whitespace-nowrap">
+                      {formatAgentCount(value)} · {Math.round(share * 100)}%
+                    </span>
+                  </button>
+                </SceneItem>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
-      <div>
-        <p className="text-ink-faint text-micro mb-4 tracking-[0.22em] uppercase">
-          Last 30 days
-        </p>
-        <div className="flex h-24 items-end gap-[3px]">
-          {agents.series.map((day) => {
-            const total = day.local + day.cloud;
-            const height = peakDay > 0 ? (total / peakDay) * 100 : 0;
+      <SceneItem delay={0.9} from="right">
+        <div className="glass rounded-3xl p-5 sm:p-8">
+          <p className="text-ink-faint text-small mb-6 tracking-[0.3em] uppercase">
+            Last 30 days
+          </p>
+          <div ref={barsRef} className="flex h-28 items-end gap-[3px] sm:h-40 sm:gap-[4px]">
+            {agents.series.map((day) => {
+              const total = day.local + day.cloud;
+              const height = peakDay > 0 ? (total / peakDay) * 100 : 0;
 
-            return (
-              <div
-                key={day.date}
-                // Capped so a short series renders as bars rather than ballooning
-                // into full-width blocks.
-                className="group relative flex h-full max-w-[18px] flex-1 flex-col justify-end"
-                title={`${formatDayLabel(day.date)}: ${day.local} local, ${day.cloud} cloud`}
-              >
+              return (
                 <div
-                  className="flex w-full flex-col-reverse overflow-hidden rounded-[2px]"
-                  style={{ height: `${Math.max(height, total > 0 ? 6 : 2)}%` }}
+                  key={day.date}
+                  // Capped so a short series renders as bars rather than ballooning
+                  // into full-width blocks.
+                  className="group relative flex h-full max-w-[28px] flex-1 flex-col justify-end"
+                  title={`${formatDayLabel(day.date)}: ${formatAgentCount(day.local)} local, ${formatAgentCount(day.cloud)} cloud`}
                 >
                   <div
-                    className={cx(
-                      "bg-data-local w-full transition-opacity",
-                      hovered === "cloud" && "opacity-25",
-                    )}
-                    style={{ flexGrow: day.local }}
-                  />
-                  <div
-                    className={cx(
-                      "bg-data-cloud w-full transition-opacity",
-                      hovered === "local" && "opacity-25",
-                    )}
-                    style={{ flexGrow: day.cloud }}
-                  />
-                  {total === 0 ? <div className="bg-edge h-full w-full" /> : null}
+                    data-agent-bar=""
+                    className="flex w-full origin-bottom flex-col-reverse overflow-hidden rounded-[3px]"
+                    style={{ height: `${Math.max(height, total > 0 ? 6 : 2)}%` }}
+                  >
+                    <div
+                      className={cx(
+                        "bg-data-local w-full transition-opacity",
+                        hovered === "cloud" && "opacity-25",
+                      )}
+                      style={{ flexGrow: day.local }}
+                    />
+                    <div
+                      className={cx(
+                        "bg-data-cloud w-full transition-opacity",
+                        hovered === "local" && "opacity-25",
+                      )}
+                      style={{ flexGrow: day.cloud }}
+                    />
+                    {total === 0 ? <div className="bg-edge h-full w-full" /> : null}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+          <p className="text-ink-faint text-base mt-5">
+            {formatAgentCount(agents.windowTotal)}{" "}
+            {agents.windowTotal === 1 ? "run" : "runs"} in the
+            charted window.
+            {agents.windowTotal === agents.total
+              ? null
+              : " The headline total covers all tracked history, so the two differ."}
+          </p>
         </div>
-        <p className="text-ink-faint text-micro mt-3">
-          {agents.windowTotal} {agents.windowTotal === 1 ? "run" : "runs"} in the
-          charted window.
-          {agents.windowTotal === agents.total
-            ? null
-            : " The headline total covers all tracked history, so the two differ."}
-        </p>
-      </div>
+      </SceneItem>
     </div>
   );
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useReducedMotion } from "motion/react";
+import { useRef, useState } from "react";
+import { gsap, useGSAP } from "@/lib/gsap";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import {
   formatCompactNumber,
   formatDuration,
   formatFullNumber,
 } from "@/lib/derive";
+import { cx } from "@/lib/cx";
 
 export type CountKind = "compact" | "duration" | "integer";
 
@@ -26,68 +28,92 @@ function format(value: number, kind: CountKind): string {
   }
 }
 
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
-}
-
+/**
+ * Counts from zero to the value once `start` flips true, then lands with a scale
+ * punch. The first paint is the real total so a skipped animation (no JS, reduced
+ * motion, or a trillion-scale value) never shows "0".
+ *
+ * Progress is a 0–1 clock rather than interpolating the raw amount: GSAP (and
+ * Motion before it) can refuse to tween numbers past ~2^53, which is exactly
+ * Lauren-scale token totals.
+ */
 export function CountUp({
   amount,
   kind,
+  start = true,
   delay = 0,
   duration = 1.4,
+  punch = true,
+  className,
 }: {
   amount: number;
   kind: CountKind;
+  /** Hold at the settled value until the scene is on screen, then replay from 0. */
+  start?: boolean;
   delay?: number;
   duration?: number;
+  /** Scale flash on completion. */
+  punch?: boolean;
+  className?: string;
 }) {
   const reduced = useReducedMotion();
-  // Start on the real total so a skipped animation (no JS, reduced motion, or a
-  // trillion-scale value that a generic interpolator refuses) never paints "0".
-  const [value, setValue] = useState(amount);
-  const [settled, setSettled] = useState(false);
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const digitsRef = useRef<HTMLSpanElement>(null);
+  const [settled, setSettled] = useState(true);
 
-  useEffect(() => {
-    if (reduced) {
-      return;
-    }
-
-    let frame = 0;
-    let origin = 0;
-    const delayMs = delay * 1000;
-    const durationMs = duration * 1000;
-
-    const tick = (now: number) => {
-      if (!origin) {
-        origin = now;
-      }
-
-      const elapsed = now - origin - delayMs;
-      if (elapsed <= 0) {
-        frame = requestAnimationFrame(tick);
+  useGSAP(
+    () => {
+      const digits = digitsRef.current;
+      if (!digits) {
         return;
       }
 
-      const progress = Math.min(1, elapsed / durationMs);
-      setValue(amount * easeOutCubic(progress));
+      digits.textContent = format(amount, kind);
 
-      if (progress < 1) {
-        frame = requestAnimationFrame(tick);
+      if (reduced !== false || !start) {
         return;
       }
 
-      setValue(amount);
-      setSettled(true);
-    };
-
-    frame = requestAnimationFrame(tick);
-
-    return () => cancelAnimationFrame(frame);
-  }, [amount, delay, duration, reduced]);
+      const proxy = { t: 0 };
+      gsap.to(proxy, {
+        t: 1,
+        duration,
+        delay,
+        ease: "expo.out",
+        onStart: () => {
+          setSettled(false);
+          digits.textContent = format(0, kind);
+        },
+        onUpdate: () => {
+          digits.textContent = format(amount * proxy.t, kind);
+        },
+        onComplete: () => {
+          digits.textContent = format(amount, kind);
+          setSettled(true);
+          if (punch && rootRef.current) {
+            gsap.fromTo(
+              rootRef.current,
+              { scale: 1 },
+              {
+                scale: 1.08,
+                duration: 0.28,
+                yoyo: true,
+                repeat: 1,
+                ease: "power2.out",
+              },
+            );
+          }
+        },
+      });
+    },
+    { dependencies: [amount, delay, duration, kind, punch, reduced, start] },
+  );
 
   return (
-    <>
-      <span aria-hidden="true">{format(reduced ? amount : value, kind)}</span>
+    <span ref={rootRef} className={cx("inline-block will-change-transform", className)}>
+      <span ref={digitsRef} aria-hidden="true">
+        {format(amount, kind)}
+      </span>
       {/*
         The visible digits churn every frame, so they stay hidden from assistive tech
         and the settled value is announced exactly once instead of as a stream.
@@ -95,6 +121,6 @@ export function CountUp({
       <span className="sr-only" aria-live="polite">
         {reduced || settled ? format(amount, kind) : ""}
       </span>
-    </>
+    </span>
   );
 }

@@ -113,4 +113,9 @@ describe("formatCompactNumber", () => {
     assert.equal(formatCompactNumber(1_456_074_038_343), "1.46T");
     assert.equal(formatCompactNumber(64_939_292_736), "64.9B");
   });
+
+  it("compacts agent-scale counts at 1k and above", () => {
+    assert.equal(formatCompactNumber(1_000), "1K");
+    assert.equal(formatCompactNumber(64_411), "64.4K");
+  });
 });

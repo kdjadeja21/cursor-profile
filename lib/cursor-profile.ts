@@ -29,6 +29,12 @@ export type DailyAgents = {
   cloud: number;
 };
 
+export type TopModel = {
+  name: string;
+  vendor: string | null;
+  agentRequests: number;
+};
+
 export type ProfileActivity = {
   mostActiveMonth: string | null;
   mostActiveDay: string | null;
@@ -44,6 +50,8 @@ export type ProfileActivity = {
   tokensOverTime: DailyTokens[];
   /** Fixed trailing 30-day window from upstream, gaps filled with zeroes. */
   agentsOverTime: DailyAgents[];
+  /** Present only when upstream reports model mix; empty when omitted. */
+  topModels: TopModel[];
 };
 
 export type CursorProfile = {
@@ -127,6 +135,26 @@ function toDailyTokens(
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+function toTopModels(value: unknown): TopModel[] {
+  return asRecordList(value)
+    .map((entry) => {
+      const name = asTrimmedString(entry.name);
+      const agentRequests = asNumber(entry.agentRequests);
+
+      if (!name || agentRequests <= 0) {
+        return null;
+      }
+
+      return {
+        name,
+        vendor: asTrimmedString(entry.vendor),
+        agentRequests,
+      };
+    })
+    .filter((entry): entry is TopModel => entry !== null)
+    .sort((a, b) => b.agentRequests - a.agentRequests);
+}
+
 function toDailyAgents(entries: Record<string, unknown>[]): DailyAgents[] {
   return entries
     .map((entry) => {
@@ -190,6 +218,7 @@ function toActivity(raw: Record<string, unknown>): ProfileActivity {
     longestAgentSeconds: asNumber(raw.longestAgentSeconds),
     tokensOverTime: toDailyTokens(asRecordList(raw.tokensOverTime), ["tokens"]),
     agentsOverTime: toDailyAgents(asRecordList(raw.agentsOverTime)),
+    topModels: toTopModels(raw.topModels),
   };
 }
 

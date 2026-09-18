@@ -57,9 +57,19 @@ export function buildStoryCards(
   cards.push({
     id: "agents",
     eyebrow: "Agents run",
-    value: `${story.agents.total}`,
-    caption: `${story.agents.local} local and ${story.agents.cloud} cloud, with a longest session of ${formatDuration(longestAgentSeconds)}.`,
+    value: formatCompactNumber(story.agents.total),
+    caption: `${formatCompactNumber(story.agents.local)} local and ${formatCompactNumber(story.agents.cloud)} cloud, with a longest session of ${formatDuration(longestAgentSeconds)}.`,
   });
+
+  const leadModel = story.topModels[0];
+  if (leadModel) {
+    cards.push({
+      id: "models",
+      eyebrow: "Top model",
+      value: leadModel.name,
+      caption: `${leadModel.agentRequests} agent ${leadModel.agentRequests === 1 ? "request" : "requests"}${leadModel.vendor ? ` · ${leadModel.vendor}` : ""}.`,
+    });
+  }
 
   cards.push({
     id: "finale",
