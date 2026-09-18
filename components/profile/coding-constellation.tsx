@@ -223,9 +223,10 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
             />
           ))}
           <span>More</span>
-          {calendar.maxTokens > 0 ? (
+          {calendar.busiestDay ? (
             <span className="text-ink-faint/70 ml-2">
-              up to {formatCompactNumber(calendar.maxTokens)}/day
+              peak {formatCompactNumber(calendar.busiestDay.tokens)} on{" "}
+              {formatDayLabel(calendar.busiestDay.date)}
             </span>
           ) : null}
         </div>

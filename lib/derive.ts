@@ -287,7 +287,10 @@ function highestThreshold(value: number, thresholds: number[]): number | null {
   return [...thresholds].reverse().find((threshold) => value >= threshold) ?? null;
 }
 
-const TOKEN_THRESHOLDS = [1e8, 2e8, 5e8, 1e9, 2e9, 5e9, 1e10, 2e10, 5e10];
+const TOKEN_THRESHOLDS = [
+  1e8, 2e8, 5e8, 1e9, 2e9, 5e9, 1e10, 2e10, 5e10, 1e11, 2e11, 5e11, 1e12, 2e12,
+  5e12,
+];
 const AGENT_THRESHOLDS = [10, 25, 50, 100, 250, 500];
 const STREAK_THRESHOLDS = [7, 14, 30, 60, 100, 365];
 
