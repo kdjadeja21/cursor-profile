@@ -106,12 +106,23 @@ export function SceneDirector({
     return null;
   }
 
+  const label = playing
+    ? "Playing the recap · scroll to take over"
+    : isLast
+      ? "That's the recap"
+      : `${scenes[activeIndex]?.label ?? ""} · ${activeIndex + 1} / ${scenes.length}`;
+  const shortLabel = playing
+    ? "Playing · scroll"
+    : isLast
+      ? "That's the recap"
+      : `${activeIndex + 1} / ${scenes.length}`;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, delay: 1.4 }}
-      className="fixed inset-x-0 bottom-6 z-40 flex justify-center px-4"
+      className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 sm:bottom-6 sm:px-4"
     >
       <div className="glass flex items-center gap-1 rounded-full py-1.5 pr-2 pl-2">
         <button
@@ -155,21 +166,18 @@ export function SceneDirector({
           )}
         </button>
 
-        <div className="relative flex h-9 min-w-[280px] items-center px-3">
-          <AnimatePresence mode="wait" initial={false}>
+        <div className="relative flex h-9 min-w-0 max-w-[min(58vw,280px)] items-center overflow-hidden px-2 sm:min-w-[240px] sm:max-w-none sm:px-3">
+          <AnimatePresence mode="popLayout" initial={false}>
             <motion.span
-              key={playing ? "playing" : isLast ? "done" : "paused"}
+              key={label}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.25 }}
-              className="text-ink-muted text-micro tracking-[0.18em] uppercase"
+              className="text-ink-muted text-micro truncate tracking-[0.18em] uppercase"
             >
-              {playing
-                ? "Playing the recap · scroll to take over"
-                : isLast
-                  ? "That's the recap"
-                  : `${scenes[activeIndex]?.label ?? ""} · ${activeIndex + 1} / ${scenes.length}`}
+              <span className="sm:hidden">{shortLabel}</span>
+              <span className="hidden sm:inline">{label}</span>
             </motion.span>
           </AnimatePresence>
 

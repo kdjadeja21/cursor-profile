@@ -142,7 +142,7 @@ export function HandleGate({
           <motion.form
             key="form"
             action={submitAction}
-            className="relative z-10 flex w-full max-w-4xl flex-col items-center px-6 py-16 text-center"
+            className="relative z-10 flex w-full max-w-4xl flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16"
             initial={reduced ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={reduced ? undefined : { opacity: 0, y: -20, filter: "blur(10px)" }}
@@ -168,7 +168,7 @@ export function HandleGate({
               <SplitText text="The year in code" by="words" delay={0.3} />
             </p>
 
-            <h1 className="text-hero lg:text-giant drop-glow font-bold">
+            <h1 className="text-hero drop-glow max-w-[12ch] font-bold sm:max-w-none">
               <SplitText
                 text="Whose year is it?"
                 by="chars"
@@ -182,17 +182,18 @@ export function HandleGate({
               layoutId="gate-orb"
               transition={{ type: "spring", stiffness: 90, damping: 18 }}
               className={cx(
-                "glass mt-14 flex w-full max-w-3xl items-center gap-2 rounded-full py-2 pr-2 pl-7 transition-[box-shadow,border-color] duration-500",
+                "glass mt-8 flex w-full max-w-3xl flex-col items-stretch gap-3 rounded-3xl p-3 transition-[box-shadow,border-color] duration-500 sm:mt-12 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:py-2 sm:pr-2 sm:pl-7",
                 focused && !error && "border-accent/60 shadow-glow",
                 error &&
                   "border-danger bg-danger/10 shadow-[0_0_70px_-8px_var(--color-danger),inset_0_0_40px_-20px_var(--color-danger)]",
                 error && !reduced && "animate-[shake_0.5s_ease-in-out]",
               )}
             >
+              <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-0">
               <motion.span
                 aria-hidden="true"
                 className={cx(
-                  "text-display font-semibold transition-colors duration-300",
+                  "text-heading sm:text-display font-semibold transition-colors duration-300",
                   focused ? "text-accent text-glow" : "text-ink-faint",
                 )}
                 animate={focused && !reduced ? { scale: [1, 1.15, 1] } : { scale: 1 }}
@@ -224,9 +225,10 @@ export function HandleGate({
                     setDismissed(true);
                   }
                 }}
-                className="text-display text-ink placeholder:text-ink-faint/60 min-w-0 flex-1 bg-transparent py-4 font-semibold outline-none"
+                className="text-title sm:text-display text-ink placeholder:text-ink-faint/60 min-w-0 flex-1 bg-transparent py-3 font-semibold outline-none sm:py-4"
               />
-              <MagneticButton type="submit" size="lg" className="shrink-0">
+              </div>
+              <MagneticButton type="submit" size="lg" className="w-full shrink-0 sm:w-auto">
                 Play
                 <span aria-hidden="true" className="text-xl leading-none">
                   →

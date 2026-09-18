@@ -26,7 +26,7 @@ export function SceneRail({
       initial={reduced ? false : { opacity: 0, x: 24 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.8, delay: 1.2 }}
-      className="fixed top-1/2 right-5 z-40 hidden -translate-y-1/2 lg:block"
+      className="fixed top-1/2 right-2 z-40 hidden -translate-y-1/2 md:block lg:right-5"
     >
       <ol className="flex flex-col gap-3">
         {scenes.map((scene, index) => {

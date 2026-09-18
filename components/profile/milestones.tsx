@@ -36,7 +36,7 @@ function MilestoneCard({
       <TiltCard
         glow={milestone.earned}
         className={cx(
-          "flex h-full flex-col justify-between overflow-hidden p-7",
+          "flex h-full flex-col justify-between overflow-hidden p-5 sm:p-7",
           !milestone.earned && "border-dashed opacity-80",
           isRecord && "border-accent/50 shimmer shimmer-auto",
         )}
@@ -107,7 +107,7 @@ export function Milestones({ milestones }: { milestones: Milestone[] }) {
   }
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid max-h-[62svh] gap-3 overflow-y-auto sm:grid-cols-2 sm:gap-4 xl:max-h-none xl:grid-cols-3 2xl:grid-cols-4">
       {milestones.map((milestone, index) => (
         <MilestoneCard key={milestone.id} milestone={milestone} index={index} />
       ))}

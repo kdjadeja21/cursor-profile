@@ -53,7 +53,7 @@ export function LoadingCinematic({
     >
       <motion.div
         layoutId={layoutId}
-        className="relative flex h-[min(38vh,320px)] w-[min(38vh,320px)] items-center justify-center"
+        className="relative flex h-[min(42vmin,280px)] w-[min(42vmin,280px)] items-center justify-center"
         transition={{ type: "spring", stiffness: 90, damping: 18 }}
       >
         <div aria-hidden="true" className="absolute inset-0">
@@ -100,7 +100,7 @@ export function LoadingCinematic({
             initial={reduced ? false : { opacity: 0, y: 16, filter: "blur(8px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="text-hero gradient-ink font-semibold"
+            className="text-display sm:text-hero gradient-ink font-semibold break-all"
           >
             @{handle}
           </motion.p>

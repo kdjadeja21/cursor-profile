@@ -57,7 +57,9 @@ export function MagneticButton({
       }}
       className={cx(
         "shimmer relative overflow-hidden rounded-full font-medium transition-[transform,box-shadow,color,border-color,opacity] duration-300 ease-out outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-60",
-        size === "lg" ? "text-lead px-9 py-4" : "text-base px-6 py-3",
+        size === "lg"
+          ? "text-base sm:text-lead px-6 py-3 sm:px-9 sm:py-4"
+          : "text-small sm:text-base px-5 py-2.5 sm:px-6 sm:py-3",
         VARIANT_CLASS[variant],
         className,
       )}

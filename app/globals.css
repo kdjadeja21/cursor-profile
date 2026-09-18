@@ -31,28 +31,28 @@
   --color-data-cloud: #a78bfa;
   --color-data-streak: #ffb020;
 
-  /* Brand type scale. Display sizes are fluid so a 1080p kiosk and a 4K wall both fill. */
-  --text-micro: 11px;
+  /* Fluid type uses vmin so a phone, a short laptop, and a 4K wall all fit. */
+  --text-micro: clamp(10px, 0.9vmin + 6px, 12px);
   --text-micro--line-height: 1.5;
-  --text-small: 14px;
+  --text-small: clamp(12px, 1vmin + 8px, 14px);
   --text-small--line-height: 1.5;
-  --text-base: 16px;
+  --text-base: clamp(14px, 1.1vmin + 9px, 16px);
   --text-base--line-height: 1.5;
-  --text-lead: clamp(18px, 1.35vw, 24px);
+  --text-lead: clamp(15px, 1.4vmin + 8px, 22px);
   --text-lead--line-height: 1.4;
-  --text-title: clamp(22px, 1.6vw, 30px);
+  --text-title: clamp(18px, 1.8vmin + 10px, 28px);
   --text-title--line-height: 1.3;
   --text-title--letter-spacing: -0.02em;
-  --text-heading: clamp(26px, 2.2vw, 40px);
+  --text-heading: clamp(22px, 2.4vmin + 10px, 36px);
   --text-heading--line-height: 1.2;
   --text-heading--letter-spacing: -0.02em;
-  --text-display: clamp(36px, 3.6vw, 64px);
+  --text-display: clamp(28px, 4vmin + 8px, 56px);
   --text-display--line-height: 1.05;
   --text-display--letter-spacing: -0.03em;
-  --text-hero: clamp(56px, 6.5vw, 128px);
+  --text-hero: clamp(40px, 7.2vmin, 96px);
   --text-hero--line-height: 1;
   --text-hero--letter-spacing: -0.04em;
-  --text-giant: clamp(80px, 11vw, 200px);
+  --text-giant: clamp(48px, 11vmin, 160px);
   --text-giant--line-height: 0.92;
   --text-giant--letter-spacing: -0.05em;
 

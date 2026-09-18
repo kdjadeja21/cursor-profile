@@ -40,7 +40,7 @@ function Avatar({ profile }: { profile: ProfileIdentity }) {
   const reduced = useReducedMotion();
 
   return (
-    <div className="relative flex h-40 w-40 shrink-0 items-center justify-center sm:h-52 sm:w-52 lg:h-64 lg:w-64">
+    <div className="relative flex h-28 w-28 shrink-0 items-center justify-center sm:h-40 sm:w-40 lg:h-56 lg:w-56">
       {reduced ? null : (
         <>
           <span className="pulse-ring border-accent/40 absolute inset-0 rounded-full border" />
@@ -130,7 +130,7 @@ export function HeroScene({
   }, [ready, reduced]);
 
   return (
-    <div className="grid items-center gap-12 lg:grid-cols-[auto_1fr] lg:gap-20">
+    <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-[auto_1fr] lg:gap-16">
       <SceneItem from="scale" delay={0.1} className="justify-self-center lg:justify-self-start">
         <Avatar profile={profile} />
       </SceneItem>
@@ -152,7 +152,7 @@ export function HeroScene({
           </div>
         </SceneItem>
 
-        <h1 className="text-hero lg:text-giant drop-glow font-bold">
+        <h1 className="text-hero drop-glow max-w-full font-bold">
           <SplitText
             text={profile.displayName}
             by="chars"

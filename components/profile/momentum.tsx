@@ -34,7 +34,7 @@ function StreakOrb({
   return (
     <div
       aria-hidden="true"
-      className="relative flex aspect-square w-[min(48vw,360px)] shrink-0 items-center justify-center"
+      className="relative flex aspect-square w-[min(42vmin,280px)] shrink-0 items-center justify-center"
     >
       {live && !reduced ? (
         <>
@@ -155,14 +155,14 @@ export function Momentum({ streak }: { streak: StreakStatus }) {
     streak.longest > 0 ? Math.min(1, streak.current / streak.longest) : 0;
 
   return (
-    <div className="grid items-center gap-12 lg:grid-cols-[auto_1fr] lg:gap-20">
+    <div className="grid items-center gap-8 lg:grid-cols-[auto_1fr] lg:gap-12">
       <SceneItem from="scale" delay={0.2} className="justify-self-center">
         <StreakOrb days={streak.current} live={live} progress={progress} ready={ready} />
       </SceneItem>
 
       <div className="grid gap-6 sm:grid-cols-2">
         <SceneItem delay={0.5} from="right" className="sm:col-span-2">
-          <TiltCard className="p-8 lg:p-10" intensity={5}>
+          <TiltCard className="p-5 sm:p-8 lg:p-10" intensity={5}>
             <p className="text-ink-faint text-small mb-3 tracking-[0.3em] uppercase">
               Current streak
             </p>
@@ -178,7 +178,7 @@ export function Momentum({ streak }: { streak: StreakStatus }) {
         </SceneItem>
 
         <SceneItem delay={0.7} from="right" className="sm:col-span-2">
-          <TiltCard className="flex flex-col justify-between p-8 lg:p-10" intensity={5} glow>
+          <TiltCard className="flex flex-col justify-between p-5 sm:p-8 lg:p-10" intensity={5} glow>
             <div className="flex flex-wrap items-end justify-between gap-6">
               <div>
                 <p className="text-ink-faint text-small mb-3 tracking-[0.3em] uppercase">

@@ -117,7 +117,7 @@ export default function StoryMode({
         }}
       />
 
-      <div className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-8">
+      <div className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 py-5 sm:px-6 sm:py-8">
         <div className="flex gap-2" aria-hidden="true">
           {cards.map((entry, position) => {
             // The active bar fills across the card's own dwell time, so the bar doubles
@@ -172,7 +172,7 @@ export default function StoryMode({
               <p
                 className={cx(
                   "tabular drop-glow font-extrabold",
-                  card.isFinale ? "text-hero" : "text-giant",
+                  card.isFinale ? "text-hero" : "text-hero sm:text-giant",
                 )}
               >
                 <SplitText

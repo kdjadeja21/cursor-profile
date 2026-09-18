@@ -64,7 +64,7 @@ export function FinaleScene({
           </p>
         </SceneItem>
 
-        <h2 className="text-hero lg:text-giant drop-glow font-bold">
+        <h2 className="text-hero drop-glow max-w-full font-bold">
           <SplitText
             text={`@${handle}`}
             by="chars"
@@ -83,7 +83,7 @@ export function FinaleScene({
         </SceneItem>
 
         <SceneItem delay={1.25} from="scale">
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:mt-12 sm:gap-4">
             <MagneticButton size="lg" onClick={() => setStoryOpen(true)}>
               Play story
               <span aria-hidden="true">▶</span>

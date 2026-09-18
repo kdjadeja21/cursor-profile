@@ -167,9 +167,9 @@ export function TokenStream({
   const peak = peakIndex >= 0 ? points[peakIndex] : null;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(240px,320px)_1fr] lg:items-center lg:gap-14">
+    <div className="grid gap-5 lg:grid-cols-[minmax(200px,280px)_1fr] lg:items-center lg:gap-10">
       <SceneItem delay={0.3} from="left">
-        <div className="glass rounded-3xl p-8">
+        <div className="glass rounded-3xl p-5 sm:p-8">
           <p className="text-ink-faint text-small mb-3 tracking-[0.3em] uppercase">
             {active ? formatDayLabel(active.entry.date) : "Last 30 days"}
           </p>

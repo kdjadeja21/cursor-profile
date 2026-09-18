@@ -83,7 +83,7 @@ export function CelebrationBurst({
       initial={reduced ? false : { opacity: 0, y: 24, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 220, damping: 20 }}
-      className="glass shimmer shimmer-auto border-accent/50 shadow-glow mt-10 inline-flex flex-wrap items-center gap-x-5 gap-y-1 overflow-hidden rounded-full px-7 py-4"
+      className="glass shimmer shimmer-auto border-accent/50 shadow-glow mt-6 inline-flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-1 overflow-hidden rounded-full px-5 py-3 sm:mt-10 sm:px-7 sm:py-4"
     >
       <span aria-hidden="true" className="text-2xl">
         ✦

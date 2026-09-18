@@ -1,14 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef } from "react";
+import { createContext, useContext, useRef } from "react";
 import type { ReactNode } from "react";
-import {
-  motion,
-  useInView,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-} from "motion/react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { SplitText } from "@/components/fx/split-text";
 import { cx } from "@/lib/cx";
 
@@ -37,40 +31,36 @@ export function useScene(): SceneState {
   return useContext(SceneContext);
 }
 
+/**
+ * One viewport-sized stop in the recap. `active` and `ready` are measured by the
+ * shell from scroll position rather than per-scene IntersectionObservers, whose
+ * state updates were arriving a beat late after long jumps.
+ */
 export function Scene({
   id,
   index,
+  active,
+  ready,
   eyebrow,
   title,
   description,
-  onActive,
   children,
   className,
   align = "left",
 }: {
   id: string;
   index: number;
+  active: boolean;
+  ready: boolean;
   eyebrow?: string;
   title?: string;
   description?: string;
-  onActive: (index: number) => void;
   children: ReactNode;
   className?: string;
   align?: "left" | "center";
 }) {
   const ref = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
-  // Both observers watch a band around the viewport centre rather than a visible
-  // ratio, so a scene taller than a small window still registers as it arrives.
-  const active = useInView(ref, { margin: "-45% 0px -45% 0px" });
-  // A separate observer rather than a latched state: `ready` must never flip back.
-  const ready = useInView(ref, { margin: "-30% 0px -30% 0px", once: true });
-
-  useEffect(() => {
-    if (active) {
-      onActive(index);
-    }
-  }, [active, index, onActive]);
 
   // Outgoing scenes shrink and dim as the next one snaps in, so the cut reads as a
   // camera move rather than a page scroll.
@@ -78,7 +68,7 @@ export function Scene({
     target: ref,
     offset: ["start end", "end start"],
   });
-  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.94, 1, 0.94]);
+  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.98, 1, 0.98]);
   const opacity = useTransform(scrollYProgress, [0, 0.25, 0.75, 1], [0, 1, 1, 0]);
 
   const centred = align === "center";
@@ -91,16 +81,16 @@ export function Scene({
         aria-labelledby={title ? `${id}-title` : undefined}
         data-scene-index={index}
         className={cx(
-          "relative flex min-h-[100svh] w-full snap-start flex-col justify-center px-6 py-16 sm:px-12 lg:px-20",
+          "relative flex min-h-[100svh] w-full snap-start flex-col justify-center px-4 py-10 pb-24 sm:px-8 sm:py-12 sm:pb-28 lg:py-16 lg:pl-16 lg:pr-28",
           className,
         )}
       >
         <motion.div
           style={reduced ? undefined : { scale, opacity }}
-          className="mx-auto flex w-full max-w-[1600px] flex-col justify-center will-change-transform"
+          className="mx-auto flex w-full max-w-[min(100%,1600px)] flex-col justify-center will-change-transform"
         >
           {eyebrow || title ? (
-            <header className={cx("mb-10 lg:mb-14", centred && "text-center")}>
+            <header className={cx("mb-6 sm:mb-8 lg:mb-10", centred && "text-center")}>
               {eyebrow ? (
                 <motion.p
                   initial={reduced ? false : { opacity: 0, x: centred ? 0 : -24 }}
@@ -116,7 +106,7 @@ export function Scene({
               {title ? (
                 <h2
                   id={`${id}-title`}
-                  className="text-display lg:text-hero font-bold"
+                  className="text-display max-w-[18ch] font-bold text-balance sm:max-w-none"
                 >
                   <SplitText
                     text={title}

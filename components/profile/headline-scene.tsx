@@ -41,7 +41,7 @@ export function HeadlineScene({ stats }: { stats: HeadlineStat[] }) {
   const rest = stats.filter((stat) => stat !== lead);
 
   return (
-    <div className="flex flex-col items-center gap-14 lg:gap-20">
+    <div className="flex flex-col items-center gap-8 sm:gap-12 lg:gap-16">
       {lead ? (
         <div className="text-center">
           <SceneItem delay={0.2}>
@@ -50,7 +50,7 @@ export function HeadlineScene({ stats }: { stats: HeadlineStat[] }) {
             </p>
           </SceneItem>
           <SceneItem delay={0.35} from="scale">
-            <p className="text-giant drop-glow tabular font-extrabold">
+            <p className="text-hero sm:text-giant drop-glow tabular font-extrabold">
               <CountUp
                 amount={lead.amount}
                 kind={lead.kind}
@@ -74,11 +74,11 @@ export function HeadlineScene({ stats }: { stats: HeadlineStat[] }) {
             delay={1.2 + index * 0.18}
             from={index % 2 === 0 ? "left" : "right"}
           >
-            <TiltCard className="h-full p-8 lg:p-10" glow>
+            <TiltCard className="h-full p-5 sm:p-8 lg:p-10" glow>
               <p className="text-ink-faint text-small mb-4 tracking-[0.3em] uppercase">
                 {stat.label}
               </p>
-              <p className="text-display lg:text-hero text-ink tabular font-bold">
+              <p className="text-display text-ink tabular font-bold">
                 <CountUp
                   amount={stat.amount}
                   kind={stat.kind}

@@ -103,10 +103,10 @@ export function CodingConstellation({ calendar }: { calendar: Calendar }) {
   const peakDate = calendar.busiestDay?.date;
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_minmax(260px,320px)] lg:items-end lg:gap-16">
-      <SceneItem delay={0.3} className="glass rounded-3xl p-6 sm:p-8 lg:p-10">
+    <div className="grid gap-5 lg:grid-cols-[1fr_minmax(220px,300px)] lg:items-end lg:gap-10">
+      <SceneItem delay={0.3} className="glass rounded-3xl p-4 sm:p-6 lg:p-8">
         <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-[560px] gap-3">
+          <div className="flex min-w-[520px] gap-2 sm:gap-3">
             <div
               aria-hidden="true"
               className="text-ink-faint text-micro grid shrink-0 grid-rows-7 gap-[5px] pt-6"

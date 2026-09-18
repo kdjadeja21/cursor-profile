@@ -61,6 +61,16 @@ export function buildStoryCards(
     caption: `${story.agents.local} local and ${story.agents.cloud} cloud, with a longest session of ${formatDuration(longestAgentSeconds)}.`,
   });
 
+  const leadModel = story.topModels[0];
+  if (leadModel) {
+    cards.push({
+      id: "models",
+      eyebrow: "Top model",
+      value: leadModel.name,
+      caption: `${leadModel.agentRequests} agent ${leadModel.agentRequests === 1 ? "request" : "requests"}${leadModel.vendor ? ` · ${leadModel.vendor}` : ""}.`,
+    });
+  }
+
   cards.push({
     id: "finale",
     eyebrow: "That's the year so far",

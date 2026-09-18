@@ -52,10 +52,10 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
   const cloudLength = Math.max(0, CIRCUMFERENCE * agents.cloudShare - ARC_GAP);
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[auto_1fr] lg:items-center lg:gap-20">
+    <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-center lg:gap-12">
       <div className="flex flex-col items-center gap-10 sm:flex-row sm:gap-12">
         <SceneItem from="scale" delay={0.2}>
-          <div className="relative h-[min(60vw,300px)] w-[min(60vw,300px)] shrink-0">
+          <div className="relative h-[min(42vmin,240px)] w-[min(42vmin,240px)] shrink-0">
             <svg viewBox="0 0 196 196" className="h-full w-full -rotate-90 overflow-visible">
               <defs>
                 <filter id="agent-glow" x="-30%" y="-30%" width="160%" height="160%">
@@ -174,11 +174,11 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
       </div>
 
       <SceneItem delay={0.9} from="right">
-        <div className="glass rounded-3xl p-8">
+        <div className="glass rounded-3xl p-5 sm:p-8">
           <p className="text-ink-faint text-small mb-6 tracking-[0.3em] uppercase">
             Last 30 days
           </p>
-          <div className="flex h-40 items-end gap-[4px]">
+          <div className="flex h-28 items-end gap-[3px] sm:h-40 sm:gap-[4px]">
             {agents.series.map((day, index) => {
               const total = day.local + day.cloud;
               const height = peakDay > 0 ? (total / peakDay) * 100 : 0;
