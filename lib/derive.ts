@@ -164,20 +164,36 @@ export type Calendar = {
 const MIN_WEEKS = 20;
 const MAX_WEEKS = 53;
 
-/** Log scaling: daily totals span ~4 orders of magnitude, so a linear ramp flattens almost every cell. */
-function bucketLevel(tokens: number, min: number, max: number): CalendarCell["level"] {
+/**
+ * Quartile banding rather than a linear or log ramp. Daily totals span four orders of
+ * magnitude with a long tail, so any absolute scale pins nearly every active day into
+ * the same band and the grid loses its texture.
+ */
+function quartileBands(values: number[]): [number, number, number] {
+  const sorted = [...values].sort((a, b) => a - b);
+  const at = (quantile: number) =>
+    sorted[Math.floor(quantile * (sorted.length - 1))] ?? 0;
+
+  return [at(0.25), at(0.5), at(0.75)];
+}
+
+function bucketLevel(
+  tokens: number,
+  bands: [number, number, number],
+): CalendarCell["level"] {
   if (tokens <= 0) {
     return 0;
   }
 
-  if (max <= min) {
-    return 4;
+  if (tokens <= bands[0]) {
+    return 1;
   }
 
-  const ratio =
-    (Math.log10(tokens) - Math.log10(min)) / (Math.log10(max) - Math.log10(min));
+  if (tokens <= bands[1]) {
+    return 2;
+  }
 
-  return (Math.min(3, Math.floor(ratio * 4)) + 1) as CalendarCell["level"];
+  return tokens <= bands[2] ? 3 : 4;
 }
 
 export function buildCalendar(
@@ -189,10 +205,7 @@ export function buildCalendar(
   const nonZero = counts.filter((entry) => entry.tokens > 0);
 
   const maxTokens = nonZero.reduce((max, entry) => Math.max(max, entry.tokens), 0);
-  const minTokens = nonZero.reduce(
-    (min, entry) => Math.min(min, entry.tokens),
-    Number.POSITIVE_INFINITY,
-  );
+  const bands = quartileBands(nonZero.map((entry) => entry.tokens));
 
   const firstTracked = counts[0]?.date ?? today;
   const spanWeeks = Math.ceil((daysBetween(firstTracked, today) + 1) / 7);
@@ -217,7 +230,7 @@ export function buildCalendar(
       cells.push({
         date,
         tokens,
-        level: inRange ? bucketLevel(tokens, minTokens, maxTokens) : 0,
+        level: inRange ? bucketLevel(tokens, bands) : 0,
         inRange,
       });
     }
