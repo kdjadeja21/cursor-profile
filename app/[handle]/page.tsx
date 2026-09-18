@@ -47,9 +47,14 @@ export async function generateMetadata({
   const { profile, activity } = await loadProfile(handle);
   const story = buildStory(activity, profile.createdAt);
 
+  const title = `${profile.displayName} (@${profile.handle}) · Cursor`;
+  const description = `${formatCompactNumber(story.calendar.totalTokens)} tokens, ${story.agents.total} agents and a ${story.streak.longest}-day streak.`;
+
   return {
-    title: `${profile.displayName} (@${profile.handle}) · Cursor`,
-    description: `${formatCompactNumber(story.calendar.totalTokens)} tokens, ${story.agents.total} agents and a ${story.streak.longest}-day streak.`,
+    title,
+    description,
+    openGraph: { title, description, type: "profile" },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

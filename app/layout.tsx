@@ -2,7 +2,16 @@ import type { Metadata } from "next";
 import { displayFont } from "@/app/fonts";
 import "./globals.css";
 
+/** Without an absolute base, the generated share card is referenced relatively and
+ *  never resolves for whoever the link is sent to. */
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Cursor Ambassadors",
   description: "Coding activity, told like a highlight reel.",
 };
