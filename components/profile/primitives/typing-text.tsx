@@ -24,6 +24,7 @@ export function TypingText({
   // than shipping an empty heading and typing it in only once hydration lands.
   const animating = useIsClient() && !reduced;
   const [typed, setTyped] = useState(0);
+  const characters = Array.from(text);
 
   useEffect(() => {
     if (reduced) {
@@ -37,7 +38,7 @@ export function TypingText({
       count += 1;
       setTyped(count);
 
-      if (count < text.length) {
+      if (count < characters.length) {
         timer = setTimeout(tick, speed);
       }
     };
@@ -48,14 +49,16 @@ export function TypingText({
       clearTimeout(start);
       clearTimeout(timer);
     };
-  }, [text, speed, delay, reduced]);
+  }, [characters.length, speed, delay, reduced, text]);
 
-  const visible = animating ? Math.min(typed, text.length) : text.length;
-  const done = visible >= text.length;
+  const visible = animating
+    ? Math.min(typed, characters.length)
+    : characters.length;
+  const done = visible >= characters.length;
 
   return (
     <span className={className}>
-      <span aria-hidden="true">{text.slice(0, visible)}</span>
+      <span aria-hidden="true">{characters.slice(0, visible).join("")}</span>
       <span className="sr-only">{text}</span>
       {/* A frozen caret would just read as a stray mark once the blink is suppressed. */}
       {reduced ? null : (

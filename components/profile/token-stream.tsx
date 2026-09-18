@@ -3,10 +3,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
 import type { DailyTokens } from "@/lib/cursor-profile";
-import {
-  formatCompactNumber,
-  formatDayLabel,
-} from "@/lib/derive";
+import { formatCompactNumber, formatDayLabel } from "@/lib/derive";
+import { tokenChartY } from "@/lib/tokens";
 import { useIsClient } from "@/lib/use-is-client";
 
 const VIEW_WIDTH = 960;
@@ -90,15 +88,20 @@ export function TokenStream({
     const innerWidth = VIEW_WIDTH - PAD.left - PAD.right;
     const innerHeight = VIEW_HEIGHT - PAD.top - PAD.bottom;
     const peak = series.reduce((best, entry) => Math.max(best, entry.tokens), 0);
-    // Log so a 60B outlier still leaves quieter days readable instead of a flat floor.
-    const logPeak = Math.log10(peak + 1);
+    const minPositive = series.reduce(
+      (best, entry) =>
+        entry.tokens > 0 && (best === 0 || entry.tokens < best)
+          ? entry.tokens
+          : best,
+      0,
+    );
     const step = series.length > 1 ? innerWidth / (series.length - 1) : 0;
 
     const mapped: Point[] = series.map((entry, index) => ({
       x: PAD.left + index * step,
       y:
         PAD.top +
-        innerHeight * (1 - (logPeak > 0 ? Math.log10(entry.tokens + 1) / logPeak : 0)),
+        innerHeight * (1 - tokenChartY(entry.tokens, peak, minPositive)),
       entry,
     }));
 
