@@ -57,8 +57,8 @@ export function buildStoryCards(
   cards.push({
     id: "agents",
     eyebrow: "Agents run",
-    value: `${story.agents.total}`,
-    caption: `${story.agents.local} local and ${story.agents.cloud} cloud, with a longest session of ${formatDuration(longestAgentSeconds)}.`,
+    value: formatCompactNumber(story.agents.total),
+    caption: `${formatCompactNumber(story.agents.local)} local and ${formatCompactNumber(story.agents.cloud)} cloud, with a longest session of ${formatDuration(longestAgentSeconds)}.`,
   });
 
   const leadModel = story.topModels[0];

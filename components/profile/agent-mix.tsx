@@ -1,8 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { AgentTotals } from "@/lib/derive";
-import { formatDayLabel } from "@/lib/derive";
+import {
+  formatCompactNumber,
+  formatDayLabel,
+  formatFullNumber,
+  type AgentTotals,
+} from "@/lib/derive";
 import { CountUp } from "@/components/profile/primitives/count-up";
 import { SceneItem, useScene } from "@/components/profile/scene";
 import { gsap, useGSAP } from "@/lib/gsap";
@@ -30,6 +34,10 @@ const SLICES: { slice: Slice; colour: string; dot: string; glow: string }[] = [
     glow: "shadow-[0_0_14px_var(--color-data-cloud)]",
   },
 ];
+
+function formatAgentCount(value: number): string {
+  return value >= 1000 ? formatCompactNumber(value) : formatFullNumber(value);
+}
 
 export function AgentMix({ agents }: { agents: AgentTotals }) {
   const [hovered, setHovered] = useState<Slice | null>(null);
@@ -198,9 +206,15 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-hero text-ink tabular font-extrabold leading-none">
                 {hovered ? (
-                  centre.value
+                  formatAgentCount(centre.value)
                 ) : (
-                  <CountUp amount={agents.total} kind="integer" start={ready} delay={0.6} duration={1.8} />
+                  <CountUp
+                    amount={agents.total}
+                    kind={agents.total >= 1000 ? "compact" : "integer"}
+                    start={ready}
+                    delay={0.6}
+                    duration={1.8}
+                  />
                 )}
               </span>
               <span className="text-ink-faint text-small mt-3 tracking-[0.3em] uppercase">
@@ -231,7 +245,7 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
                     <span className={cx("h-3.5 w-3.5 rounded-full", dot, glow)} />
                     <span className="text-title text-ink font-semibold capitalize">{slice}</span>
                     <span className="text-ink-faint text-base tabular whitespace-nowrap">
-                      {value} · {Math.round(share * 100)}%
+                      {formatAgentCount(value)} · {Math.round(share * 100)}%
                     </span>
                   </button>
                 </SceneItem>
@@ -257,7 +271,7 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
                   // Capped so a short series renders as bars rather than ballooning
                   // into full-width blocks.
                   className="group relative flex h-full max-w-[28px] flex-1 flex-col justify-end"
-                  title={`${formatDayLabel(day.date)}: ${day.local} local, ${day.cloud} cloud`}
+                  title={`${formatDayLabel(day.date)}: ${formatAgentCount(day.local)} local, ${formatAgentCount(day.cloud)} cloud`}
                 >
                   <div
                     data-agent-bar=""
@@ -285,7 +299,8 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
             })}
           </div>
           <p className="text-ink-faint text-base mt-5">
-            {agents.windowTotal} {agents.windowTotal === 1 ? "run" : "runs"} in the
+            {formatAgentCount(agents.windowTotal)}{" "}
+            {agents.windowTotal === 1 ? "run" : "runs"} in the
             charted window.
             {agents.windowTotal === agents.total
               ? null

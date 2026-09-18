@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import type { Milestone } from "@/lib/derive";
+import { formatCompactNumber, formatFullNumber } from "@/lib/derive";
 import { TiltCard } from "@/components/fx/tilt-card";
 import { GsapFill } from "@/components/fx/gsap-fill";
 import { SceneItem, useScene } from "@/components/profile/scene";
@@ -9,12 +10,18 @@ import { gsap, useGSAP } from "@/lib/gsap";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
+function formatStat(value: number): string {
+  return value >= 1000 ? formatCompactNumber(value) : formatFullNumber(value);
+}
+
 function MilestoneCard({
   milestone,
   index,
+  dense,
 }: {
   milestone: Milestone;
   index: number;
+  dense: boolean;
 }) {
   const { ready } = useScene();
   const reduced = useReducedMotion();
@@ -44,7 +51,7 @@ function MilestoneCard({
           rotateX: 0,
           y: 0,
           duration: 0.8,
-          delay: 0.35 + index * 0.12,
+          delay: 0.25 + index * 0.08,
           ease: "expo.out",
         },
       );
@@ -53,11 +60,13 @@ function MilestoneCard({
   );
 
   return (
-    <div ref={cardRef} className="h-full" style={{ perspective: 1200 }}>
+    <div ref={cardRef} className="h-full min-h-0" style={{ perspective: 1200 }}>
       <TiltCard
         glow={milestone.earned}
+        intensity={dense ? 4 : 8}
         className={cx(
-          "flex h-full flex-col justify-between overflow-hidden p-5 sm:p-7",
+          "flex h-full flex-col justify-between overflow-hidden",
+          dense ? "p-3.5 sm:p-4" : "p-5 sm:p-7",
           !milestone.earned && "border-dashed opacity-80",
           isRecord && "border-accent/50 shimmer shimmer-auto",
         )}
@@ -69,7 +78,7 @@ function MilestoneCard({
           />
         ) : null}
         <div className="relative">
-          <div className="mb-4 flex items-center gap-2.5">
+          <div className={cx("flex items-center gap-2.5", dense ? "mb-2.5" : "mb-4")}>
             <span
               aria-hidden="true"
               className={cx(
@@ -87,28 +96,31 @@ function MilestoneCard({
           </div>
           <p
             className={cx(
-              "text-heading tabular font-bold",
+              "tabular font-bold",
+              dense ? "text-title sm:text-heading" : "text-heading",
               isRecord ? "text-accent" : "text-ink",
             )}
           >
             {milestone.title}
           </p>
-          <p className="text-ink-muted text-base mt-2">{milestone.detail}</p>
+          <p className={cx("text-ink-muted mt-1.5", dense ? "text-small sm:text-base" : "text-base")}>
+            {milestone.detail}
+          </p>
         </div>
 
         {milestone.progress ? (
-          <div className="relative mt-6">
+          <div className={cx("relative", dense ? "mt-4" : "mt-6")}>
             <div className="bg-edge h-1.5 overflow-hidden rounded-full">
               <GsapFill
                 play={ready}
                 duration={1.2}
-                delay={0.9 + index * 0.1}
+                delay={0.7 + index * 0.08}
                 className="bg-ink-muted h-full rounded-full"
                 style={{ width: `${Math.max(progress * 100, 1)}%` }}
               />
             </div>
             <p className="text-ink-faint text-small mt-2 tabular">
-              {milestone.progress.current} / {milestone.progress.target}{" "}
+              {formatStat(milestone.progress.current)} / {formatStat(milestone.progress.target)}{" "}
               {milestone.progress.unit}
             </p>
           </div>
@@ -127,10 +139,24 @@ export function Milestones({ milestones }: { milestones: Milestone[] }) {
     );
   }
 
+  const crowded = milestones.length > 6;
+
   return (
-    <div className="grid max-h-[62svh] gap-3 overflow-y-auto sm:grid-cols-2 sm:gap-4 xl:max-h-none xl:grid-cols-3 2xl:grid-cols-4">
+    <div
+      className={cx(
+        "grid w-full gap-2 sm:gap-3",
+        crowded
+          ? "max-h-[58svh] grid-cols-1 overflow-y-auto sm:grid-cols-2 lg:max-h-none lg:grid-cols-4 lg:overflow-visible"
+          : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+      )}
+    >
       {milestones.map((milestone, index) => (
-        <MilestoneCard key={milestone.id} milestone={milestone} index={index} />
+        <MilestoneCard
+          key={milestone.id}
+          milestone={milestone}
+          index={index}
+          dense={crowded}
+        />
       ))}
     </div>
   );

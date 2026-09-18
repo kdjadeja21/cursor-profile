@@ -366,7 +366,7 @@ export function deriveMilestones(
     milestones.push({
       id: "agents-tier",
       title: `${agentTier}+ agents`,
-      detail: `${activity.agentsLocal} local and ${activity.agentsCloud} cloud runs`,
+      detail: `${formatCompactNumber(activity.agentsLocal)} local and ${formatCompactNumber(activity.agentsCloud)} cloud runs`,
       kind: "threshold",
       earned: true,
     });
@@ -412,7 +412,7 @@ export function deriveMilestones(
     milestones.push({
       id: "next-agents",
       title: `${nextAgents} agents`,
-      detail: `${nextAgents - agents} more runs to go`,
+      detail: `${formatCompactNumber(nextAgents - agents)} more runs to go`,
       kind: "threshold",
       earned: false,
       progress: { current: agents, target: nextAgents, unit: "agents" },
