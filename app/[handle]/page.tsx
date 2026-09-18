@@ -14,7 +14,10 @@ import { Momentum } from "@/components/profile/momentum";
 import { TokenStream } from "@/components/profile/token-stream";
 import { AgentMix } from "@/components/profile/agent-mix";
 import { Milestones } from "@/components/profile/milestones";
+import { CelebrationBurst } from "@/components/profile/celebration-burst";
+import { SharePanel } from "@/components/profile/share-panel";
 import { Section } from "@/components/profile/primitives/surfaces";
+import { buildStoryCards } from "@/lib/story-cards";
 
 /** Only `/@handle` is a profile; anything else is a genuine 404. */
 function resolveHandle(segment: string): string {
@@ -87,6 +90,13 @@ export default async function ProfilePage({ params }: PageProps<"/[handle]">) {
     <main className="mx-auto w-full max-w-5xl px-6 pb-24 sm:px-8">
       <HeroBand profile={profile} joinedDaysAgo={story.joinedDaysAgo} />
 
+      {story.celebration ? (
+        <CelebrationBurst
+          celebration={story.celebration}
+          handle={profile.handle}
+        />
+      ) : null}
+
       <HeadlineMarquee stats={stats} />
 
       <Section
@@ -135,6 +145,19 @@ export default async function ProfilePage({ params }: PageProps<"/[handle]">) {
         description="Derived from the activity history — records, thresholds and peaks."
       >
         <Milestones milestones={story.milestones} />
+      </Section>
+
+      <Section
+        id="share"
+        eyebrow="Share"
+        title="Send it to someone"
+        description="The recap runs as a short story, and the link unfurls with a generated card."
+      >
+        <SharePanel
+          cards={buildStoryCards(profile, story, activity.longestAgentSeconds)}
+          displayName={profile.displayName}
+          handle={profile.handle}
+        />
       </Section>
     </main>
   );
