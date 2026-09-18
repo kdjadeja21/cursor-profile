@@ -7,9 +7,10 @@ import { SplitText } from "@/components/fx/split-text";
 import { burstParticles } from "@/components/fx/particle-field";
 import { CelebrationBurst } from "@/components/profile/celebration-burst";
 import { SceneItem, useScene } from "@/components/profile/scene";
+import { SocialMark, socialKindLabel } from "@/components/profile/social-mark";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { parseSocialLinks } from "@/lib/social-links";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
-import { cx } from "@/lib/cx";
 
 function badgeLabel(value: string): string {
   return value
@@ -27,14 +28,6 @@ function joinedLabel(days: number): string {
   return days === 1
     ? "Joined yesterday"
     : `Joined ${days.toLocaleString("en-US")} days ago`;
-}
-
-function linkLabel(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
 }
 
 function Avatar({ profile }: { profile: ProfileIdentity }) {
@@ -197,23 +190,28 @@ export function HeroScene({
         </SceneItem>
 
         <SceneItem delay={1.1}>
-          <div
-            className={cx(
-              "text-ink-faint text-lead mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 lg:justify-start",
-            )}
-          >
-            {joinedDaysAgo !== null ? <span>{joinedLabel(joinedDaysAgo)}</span> : null}
-            {profile.links.map((link) => (
-              <a
-                key={link}
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-accent underline-offset-6 transition-colors hover:underline"
-              >
-                {linkLabel(link)}
-              </a>
-            ))}
+          <div className="mt-8 flex flex-col items-center gap-5 lg:items-start">
+            {joinedDaysAgo !== null ? (
+              <p className="text-ink-faint text-lead">{joinedLabel(joinedDaysAgo)}</p>
+            ) : null}
+            {profile.links.length > 0 ? (
+              <ul className="flex flex-col items-center gap-3 lg:items-start">
+                {parseSocialLinks(profile.links).map((link) => (
+                  <li key={link.href}>
+                    <a
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`${socialKindLabel(link.kind)}, ${link.label}`}
+                      className="text-ink-muted hover:text-ink text-lead flex items-center gap-3 transition-colors"
+                    >
+                      <SocialMark kind={link.kind} className="h-[1.15em] w-[1.15em] shrink-0" />
+                      <span>{link.label}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         </SceneItem>
 

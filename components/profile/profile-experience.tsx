@@ -16,9 +16,10 @@ import { TopModels } from "@/components/profile/top-models";
 import { Milestones } from "@/components/profile/milestones";
 import { FinaleScene } from "@/components/profile/share-panel";
 import { Scene, type SceneDefinition } from "@/components/profile/scene";
-import { SceneRail, scrollToScene } from "@/components/profile/scene-rail";
+import { SceneRail } from "@/components/profile/scene-rail";
 import { SceneDirector } from "@/components/profile/scene-director";
 import { ParticleField } from "@/components/fx/particle-field";
+import { scrollToScene } from "@/lib/scroll-to-scene";
 import { useMood } from "@/lib/use-mood";
 
 type SceneSlot = SceneDefinition & {
