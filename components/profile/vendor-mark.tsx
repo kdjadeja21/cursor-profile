@@ -4,17 +4,19 @@ import { cx } from "@/lib/cx";
 
 export type KnownVendor = "anthropic" | "google" | "cursor" | "openai" | "xai";
 
-export function knownVendor(vendor: string | null): KnownVendor | null {
+function knownVendor(vendor: string | null): KnownVendor | null {
   if (!vendor) {
     return null;
   }
 
-  switch (vendor.toLowerCase()) {
+  switch (vendor.toLowerCase().replace(/[\s._-]/g, "")) {
     case "anthropic":
       return "anthropic";
     case "google":
+    case "googledeepmind":
       return "google";
     case "cursor":
+    case "anysphere":
       return "cursor";
     case "openai":
       return "openai";
@@ -22,6 +24,62 @@ export function knownVendor(vendor: string | null): KnownVendor | null {
       return "xai";
     default:
       return null;
+  }
+}
+
+/** Prefer the API vendor, then infer from the model name so logos still show. */
+export function resolveVendor(vendor: string | null, name: string): KnownVendor | null {
+  const fromVendor = knownVendor(vendor);
+  if (fromVendor) {
+    return fromVendor;
+  }
+
+  const n = name.toLowerCase();
+  if (
+    n.includes("claude") ||
+    n.includes("sonnet") ||
+    n.includes("opus") ||
+    n.includes("haiku")
+  ) {
+    return "anthropic";
+  }
+  if (n.includes("gemini") || n.includes("gemma")) {
+    return "google";
+  }
+  if (n.includes("grok")) {
+    return "xai";
+  }
+  if (
+    n.includes("gpt") ||
+    /\bo[1-9]\b/.test(n) ||
+    n.includes("chatgpt") ||
+    n.includes("codex")
+  ) {
+    return "openai";
+  }
+  if (n.includes("composer") || n.includes("cursor") || n === "auto") {
+    return "cursor";
+  }
+
+  return null;
+}
+
+export function vendorDisplayName(vendor: KnownVendor): string {
+  switch (vendor) {
+    case "anthropic":
+      return "Anthropic";
+    case "google":
+      return "Google";
+    case "cursor":
+      return "Cursor";
+    case "openai":
+      return "OpenAI";
+    case "xai":
+      return "xAI";
+    default: {
+      const exhaustive: never = vendor;
+      return exhaustive;
+    }
   }
 }
 

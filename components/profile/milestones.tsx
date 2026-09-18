@@ -144,10 +144,10 @@ export function Milestones({ milestones }: { milestones: Milestone[] }) {
   return (
     <div
       className={cx(
-        "grid w-full gap-2 sm:gap-3",
+        "grid w-full",
         crowded
-          ? "max-h-[58svh] grid-cols-1 overflow-y-auto sm:grid-cols-2 lg:max-h-none lg:grid-cols-4 lg:overflow-visible"
-          : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+          ? "max-h-[calc(100svh-11rem)] grid-cols-2 gap-2 overflow-y-auto sm:gap-2.5 lg:max-h-none lg:grid-cols-4 lg:gap-3 lg:overflow-visible"
+          : "grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3",
       )}
     >
       {milestones.map((milestone, index) => (
