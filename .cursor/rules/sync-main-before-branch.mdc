@@ -1,11 +1,19 @@
 ---
-description: Always update main with fetch and pull before creating any new branch
+description: Update main before the first branch of new work; never spawn extra branches in the same session
 alwaysApply: true
 ---
 
 # Sync main before creating a branch
 
-This is a strict, non-negotiable rule. Do not create a new git branch until `main` is confirmed already up to date.
+This is a strict rule for **starting new work**. Do not invent extra branches for follow-ups in the same session.
+
+## When you already have a working branch for this session
+
+Stay on that branch. Commit, push, and update the existing PR. Do not create a new branch because a later message asked for a fix, tweak, or addition to the same work.
+
+## When you must create a new branch (new work only)
+
+Do not create a new git branch until `main` is confirmed already up to date.
 
 Required sequence, in order:
 
@@ -15,4 +23,4 @@ Required sequence, in order:
 4. If the pull fast-forwarded or otherwise changed `main`, run `git fetch && git pull` again and wait until you see that it is already up to date.
 5. Only then create the new branch from that updated `main`.
 
-Do not branch from a stale local checkout, a feature branch, or a snapshot taken before this fetch/pull. Do not skip the pull because `git fetch` already updated remote-tracking refs. Do not create the branch in the same step as a pull that still had commits to apply.
+Do not branch from a stale local checkout or a snapshot taken before this fetch/pull. Do not skip the pull because `git fetch` already updated remote-tracking refs. Do not create the branch in the same step as a pull that still had commits to apply.
