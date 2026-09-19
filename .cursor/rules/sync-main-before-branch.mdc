@@ -1,5 +1,5 @@
 ---
-description: Existing session stays on its branch; only new work syncs main then branches
+description: Existing session stays on its branch, syncs main before each commit; only new work branches after fetch/pull
 alwaysApply: true
 ---
 
@@ -12,6 +12,16 @@ This is a strict rule. **Existing session first:** if this conversation already 
 Do not create a new branch. Stay on the current branch. Commit, push, and update the existing PR.
 
 This applies to every later message in the same session: fixes, tweaks, rule updates, reviews, merges of other work into this PR, and “make sure” follow-ups. Do not check out `main` and branch again. Do not open a second PR for the same session.
+
+Before every commit on that existing session branch, take the latest `main` into the current branch. Required sequence, in order:
+
+1. Stay on the session branch. Do not check out `main`.
+2. Run `git fetch && git pull origin main` so the current branch receives the latest `main`.
+3. Read the output. Commit **only** after the pull reports that the branch is already up to date with `main` (for example `Already up to date.`) or after you have finished merging that latest `main` into this branch.
+4. If the pull fast-forwarded, merged new `main` commits, or otherwise changed the branch, run `git fetch && git pull origin main` again and wait until you see that it is already up to date.
+5. Only then commit the session changes on this same branch, push, and update the existing PR.
+
+Do not commit on a session branch that is missing the latest `main`. Do not skip the pull because `git fetch` already updated remote-tracking refs. Do not leave the session branch to create a new one after this sync.
 
 ## When you must create a new branch (new work only)
 
