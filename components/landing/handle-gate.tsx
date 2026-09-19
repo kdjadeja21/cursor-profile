@@ -24,6 +24,15 @@ import { cx } from "@/lib/cx";
 
 const SAMPLE_HANDLES = ["your-username", "cursor-ambassador"];
 
+const FEATURED_HANDLES = [
+  "eric",
+  "lauren",
+  "leerob",
+  "emily",
+  "nate",
+  "erik",
+] as const;
+
 function errorCopy(kind: GateError): string {
   switch (kind) {
     case "empty":
@@ -107,6 +116,7 @@ export function HandleGate({
   const [dismissed, setDismissed] = useState(false);
   const [handle, setHandle] = useState(initialHandle);
   const [focused, setFocused] = useState(false);
+  const lastRandomRef = useRef<string | null>(null);
   const error = pending || dismissed ? null : state.error;
   const placeholder = useTypewriterPlaceholder(reduced !== true && handle.length === 0);
 
@@ -165,6 +175,19 @@ export function HandleGate({
   const submitAction = (formData: FormData) => {
     setDismissed(false);
     return formAction(formData);
+  };
+
+  const playRandomProfile = () => {
+    const pool = lastRandomRef.current
+      ? FEATURED_HANDLES.filter((name) => name !== lastRandomRef.current)
+      : FEATURED_HANDLES;
+    const next = pool[Math.floor(Math.random() * pool.length)] ?? FEATURED_HANDLES[0];
+    lastRandomRef.current = next;
+    setHandle(next);
+    setDismissed(false);
+    const formData = new FormData();
+    formData.set("handle", next);
+    formAction(formData);
   };
 
   return (
@@ -279,7 +302,19 @@ export function HandleGate({
           </MagneticButton>
         </div>
 
-        <div className="relative mt-6 h-[1.8em] w-full">
+        <MagneticButton
+          type="button"
+          variant="ghost"
+          size="lg"
+          disabled={pending}
+          onClick={playRandomProfile}
+          className="mt-5"
+        >
+          Surprise me
+          <span aria-hidden="true">✦</span>
+        </MagneticButton>
+
+        <div className="relative mt-5 h-[1.8em] w-full">
           <GsapSwap
             id={error ?? (pending ? "fetching" : "hint")}
             className="absolute inset-x-0"
