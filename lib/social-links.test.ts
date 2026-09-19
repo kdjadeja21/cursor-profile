@@ -37,6 +37,54 @@ describe("parseSocialLink", () => {
     assert.equal(parseSocialLink("https://leerob.com").label, "leerob.com");
   });
 
+  it("reads LinkedIn profiles and company pages", () => {
+    assert.deepEqual(parseSocialLink("https://www.linkedin.com/in/vishal-nai"), {
+      href: "https://www.linkedin.com/in/vishal-nai",
+      kind: "linkedin",
+      label: "vishal-nai",
+    });
+
+    assert.equal(parseSocialLink("linkedin.com/in/vishal-nai").kind, "linkedin");
+    assert.equal(parseSocialLink("https://uk.linkedin.com/in/vishal-nai").kind, "linkedin");
+    assert.equal(parseSocialLink("https://www.linkedin.com/company/cursor").label, "cursor");
+    assert.equal(parseSocialLink("https://linkedin.com").label, "LinkedIn");
+    assert.equal(parseSocialLink("https://lnkd.in/abc123").kind, "linkedin");
+  });
+
+  it("reads Linktree handles from linktr.ee and linktree.com", () => {
+    assert.deepEqual(parseSocialLink("https://linktr.ee/vishalnai"), {
+      href: "https://linktr.ee/vishalnai",
+      kind: "linktree",
+      label: "vishalnai",
+    });
+
+    assert.equal(parseSocialLink("linktr.ee/vishalnai").kind, "linktree");
+    assert.equal(parseSocialLink("https://www.linktree.com/vishalnai").label, "vishalnai");
+    assert.equal(parseSocialLink("https://linktr.ee").label, "Linktree");
+  });
+
+  it("recognizes other well-known media hosts", () => {
+    assert.equal(parseSocialLink("https://instagram.com/poteto").kind, "instagram");
+    assert.equal(parseSocialLink("https://www.instagram.com/poteto").label, "@poteto");
+    assert.equal(parseSocialLink("https://youtube.com/@poteto").kind, "youtube");
+    assert.equal(parseSocialLink("https://www.youtube.com/@poteto").label, "@poteto");
+    assert.equal(parseSocialLink("https://youtu.be/abc").kind, "youtube");
+    assert.equal(parseSocialLink("https://www.tiktok.com/@poteto").kind, "tiktok");
+    assert.equal(parseSocialLink("https://www.facebook.com/poteto").kind, "facebook");
+    assert.equal(parseSocialLink("https://www.threads.net/@poteto").kind, "threads");
+    assert.equal(parseSocialLink("https://bsky.app/profile/poteto.bsky.social").kind, "bluesky");
+    assert.equal(parseSocialLink("https://bsky.app/profile/poteto.bsky.social").label, "poteto.bsky.social");
+    assert.equal(parseSocialLink("https://discord.gg/cursor").kind, "discord");
+    assert.equal(parseSocialLink("https://www.twitch.tv/poteto").kind, "twitch");
+    assert.equal(parseSocialLink("https://www.reddit.com/u/poteto").kind, "reddit");
+    assert.equal(parseSocialLink("https://medium.com/@poteto").kind, "medium");
+    assert.equal(parseSocialLink("https://poteto.substack.com").kind, "substack");
+    assert.equal(parseSocialLink("https://dribbble.com/poteto").kind, "dribbble");
+    assert.equal(parseSocialLink("https://www.behance.net/poteto").kind, "behance");
+    assert.equal(parseSocialLink("https://t.me/poteto").kind, "telegram");
+    assert.equal(parseSocialLink("https://gitlab.com/poteto").kind, "gitlab");
+  });
+
   it("falls back to the raw string when the URL is not parseable", () => {
     assert.deepEqual(parseSocialLink("not a url"), {
       href: "not a url",
@@ -68,6 +116,8 @@ describe("parseSocialLinks", () => {
     const links = parseSocialLinks([
       "https://x.com/poteto",
       "https://github.com/poteto",
+      "https://www.linkedin.com/in/poteto",
+      "https://linktr.ee/poteto",
       "https://www.no.lol/",
     ]);
 
@@ -76,6 +126,8 @@ describe("parseSocialLinks", () => {
       [
         ["x", "@poteto"],
         ["github", "poteto"],
+        ["linkedin", "poteto"],
+        ["linktree", "poteto"],
         ["website", "no.lol"],
       ],
     );
