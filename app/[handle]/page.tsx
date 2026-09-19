@@ -3,9 +3,8 @@ import type { Metadata } from "next";
 import type { CursorProfile } from "@/lib/cursor-profile";
 import { getCursorProfile, normalizeHandle } from "@/lib/cursor-profile";
 import { buildStory, formatCompactNumber } from "@/lib/derive";
-import type { HeadlineStat } from "@/components/profile/headline-scene";
 import { ProfileExperience } from "@/components/profile/profile-experience";
-import { buildStoryCards } from "@/lib/story-cards";
+import { buildHeadlineStats, buildStoryCards } from "@/lib/story-cards";
 
 /** Only `/@handle` is a profile; anything else is a genuine 404. */
 function resolveHandle(segment: string): string {
@@ -53,33 +52,7 @@ export default async function ProfilePage({ params }: PageProps<"/[handle]">) {
   const { handle } = await params;
   const { profile, activity } = await loadProfile(handle);
   const story = buildStory(activity, profile.createdAt);
-
-  const stats: HeadlineStat[] = [
-    {
-      id: "tokens",
-      label: "Tokens generated",
-      amount: story.calendar.totalTokens,
-      kind: "compact",
-      detail: story.hasActivity
-        ? `Across ${story.calendar.trackedDays} days of tracked history`
-        : "Nothing tracked yet",
-      emphasis: true,
-    },
-    {
-      id: "agents",
-      label: "Agents run",
-      amount: story.agents.total,
-      kind: "integer",
-      detail: `${story.agents.local} local · ${story.agents.cloud} cloud`,
-    },
-    {
-      id: "longest-agent",
-      label: "Longest agent",
-      amount: activity.longestAgentSeconds,
-      kind: "duration",
-      detail: "Single uninterrupted session",
-    },
-  ];
+  const stats = buildHeadlineStats(activity, story);
 
   return (
     <ProfileExperience

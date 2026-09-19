@@ -1,10 +1,11 @@
-import type { ProfileIdentity } from "@/lib/cursor-profile";
+import type { ProfileActivity, ProfileIdentity } from "@/lib/cursor-profile";
 import type { ProfileStory } from "@/lib/derive";
 import {
   formatCompactNumber,
   formatDayLabel,
   formatDuration,
 } from "@/lib/derive";
+import type { HeadlineStat } from "@/components/profile/headline-scene";
 
 export type StoryCard = {
   id: string;
@@ -14,6 +15,42 @@ export type StoryCard = {
   /** The closing card carries the share actions instead of a plain stat. */
   isFinale?: boolean;
 };
+
+/**
+ * Shared with `app/[handle]/page.tsx` and the event display's "presenting" view so
+ * the two never drift out of sync.
+ */
+export function buildHeadlineStats(
+  activity: ProfileActivity,
+  story: ProfileStory,
+): HeadlineStat[] {
+  return [
+    {
+      id: "tokens",
+      label: "Tokens generated",
+      amount: story.calendar.totalTokens,
+      kind: "compact",
+      detail: story.hasActivity
+        ? `Across ${story.calendar.trackedDays} days of tracked history`
+        : "Nothing tracked yet",
+      emphasis: true,
+    },
+    {
+      id: "agents",
+      label: "Agents run",
+      amount: story.agents.total,
+      kind: "integer",
+      detail: `${story.agents.local} local · ${story.agents.cloud} cloud`,
+    },
+    {
+      id: "longest-agent",
+      label: "Longest agent",
+      amount: activity.longestAgentSeconds,
+      kind: "duration",
+      detail: "Single uninterrupted session",
+    },
+  ];
+}
 
 export function buildStoryCards(
   profile: ProfileIdentity,
