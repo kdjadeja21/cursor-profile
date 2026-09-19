@@ -1,15 +1,17 @@
 ---
-description: Update main before the first branch of new work; never spawn extra branches in the same session
+description: Existing session stays on its branch; only new work syncs main then branches
 alwaysApply: true
 ---
 
 # Sync main before creating a branch
 
-This is a strict rule for **starting new work**. Do not invent extra branches for follow-ups in the same session.
+This is a strict rule. **Existing session first:** if this conversation already has a working branch or open PR, do not create a new branch.
 
 ## When you already have a working branch for this session
 
-Stay on that branch. Commit, push, and update the existing PR. Do not create a new branch because a later message asked for a fix, tweak, or addition to the same work.
+Do not create a new branch. Stay on the current branch. Commit, push, and update the existing PR.
+
+This applies to every later message in the same session: fixes, tweaks, rule updates, reviews, merges of other work into this PR, and “make sure” follow-ups. Do not check out `main` and branch again. Do not open a second PR for the same session.
 
 ## When you must create a new branch (new work only)
 
