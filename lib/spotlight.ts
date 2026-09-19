@@ -1,7 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server";
-import { getCursorProfile, type CursorProfile } from "@/lib/cursor-profile";
+import { getCursorProfile } from "@/lib/cursor-profile";
 import { HANDLE_PATTERN, parseHandleInput } from "@/lib/handle";
-import { buildStory } from "@/lib/derive";
 import {
   EXPIRY_SECONDS,
   computeSecondsRemaining,
@@ -38,25 +37,6 @@ type SpotlightRow = {
   started_at: string | null;
   is_random: boolean;
 };
-
-/** Trims a fetched profile down to what the spotlight card actually shows. */
-export function buildProfileSnapshot(
-  profile: CursorProfile,
-): SpotlightProfileSnapshot {
-  const story = buildStory(profile.activity, profile.profile.createdAt);
-
-  return {
-    handle: profile.profile.handle,
-    displayName: profile.profile.displayName,
-    avatarUrl: profile.profile.avatarUrl,
-    badges: profile.profile.badges,
-    stats: {
-      totalTokens: story.calendar.totalTokens,
-      agentsTotal: story.agents.total,
-      longestStreak: story.streak.longest,
-    },
-  };
-}
 
 /**
  * Flips a stale `presenting` row back to `idle`. Safe to call from any number of
@@ -103,7 +83,7 @@ export async function getSpotlightStatus(): Promise<SpotlightStatusResponse> {
 
   return {
     status: "presenting",
-    username: data.profile_username ?? data.profile_data.handle,
+    username: data.profile_username ?? data.profile_data.profile.handle,
     profile: data.profile_data,
     isRandom: data.is_random,
     secondsRemaining,
@@ -143,10 +123,10 @@ export async function claimSpotlight(input: ClaimInput): Promise<ClaimResult> {
     };
   }
 
-  const snapshot = buildProfileSnapshot({
+  const snapshot: SpotlightProfileSnapshot = {
     profile: profileResult.profile,
     activity: profileResult.activity,
-  });
+  };
 
   const supabase = getSupabaseServerClient();
   await expireIfStale(supabase);
@@ -156,7 +136,7 @@ export async function claimSpotlight(input: ClaimInput): Promise<ClaimResult> {
     .from(SESSION_TABLE)
     .update({
       status: "presenting",
-      profile_username: snapshot.handle,
+      profile_username: snapshot.profile.handle,
       profile_data: snapshot,
       started_at: startedAtIso,
       is_random: isRandom,
@@ -175,7 +155,7 @@ export async function claimSpotlight(input: ClaimInput): Promise<ClaimResult> {
 
   return {
     ok: true,
-    username: snapshot.handle,
+    username: snapshot.profile.handle,
     profile: snapshot,
     isRandom,
     secondsRemaining: EXPIRY_SECONDS,

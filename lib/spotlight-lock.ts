@@ -3,7 +3,11 @@
  * directly under `node --experimental-strip-types --test` (this repo's test
  * runner doesn't resolve the `@/` alias). Everything here has no dependency on
  * Supabase, the profile API, or Next — see `lib/spotlight.ts` for the parts that do.
+ *
+ * The one exception is `CursorProfile` below, imported `type`-only: type-only
+ * imports are erased before module resolution, so it costs nothing at runtime.
  */
+import type { CursorProfile } from "@/lib/cursor-profile";
 
 /** How long a claim stays live before the display reverts to idle. Server-computed only (FR5). */
 export const EXPIRY_SECONDS = 60;
@@ -22,17 +26,13 @@ export const CURATED_HANDLES: readonly string[] = [
   "erik",
 ];
 
-export type SpotlightProfileSnapshot = {
-  handle: string;
-  displayName: string;
-  avatarUrl: string | null;
-  badges: string[];
-  stats: {
-    totalTokens: number;
-    agentsTotal: number;
-    longestStreak: number;
-  };
-};
+/**
+ * The full profile + activity payload is stored (not a trimmed summary) so the
+ * display route can render the exact same scroll-through experience as `/@handle`
+ * — same story scenes, same headline stats, same share cards — rather than a
+ * cut-down highlight card.
+ */
+export type SpotlightProfileSnapshot = CursorProfile;
 
 export type SpotlightStatusResponse =
   | { status: "idle" }

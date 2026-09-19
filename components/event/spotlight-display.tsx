@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QrIdleScreen } from "@/components/event/qr-idle-screen";
-import { PresentingCard } from "@/components/event/presenting-card";
+import { PresentingExperience } from "@/components/event/presenting-experience";
 import type { SpotlightStatusResponse } from "@/lib/spotlight-lock";
 
 const POLL_INTERVAL_MS = 2000;
@@ -20,9 +20,10 @@ async function fetchStatus(): Promise<SpotlightStatusResponse | null> {
 }
 
 /**
- * Polls the status endpoint every ~2s (PRD §7). `secondsRemaining` always comes
- * from the server response — the display never runs its own countdown timer, so a
- * refresh or a stuck tab can't desync from the real expiry (FR5).
+ * Polls the status endpoint every ~2s (PRD §7). Expiry is entirely server-computed
+ * (FR5) — this component doesn't run its own countdown; it just swaps to idle
+ * once a poll reports `status: "idle"` again. When presenting, it renders the
+ * exact same scroll-through recap as `/@handle`.
  */
 export function SpotlightDisplay() {
   const [status, setStatus] = useState<SpotlightStatusResponse>({ status: "idle" });
@@ -47,7 +48,9 @@ export function SpotlightDisplay() {
   }, []);
 
   if (status.status === "presenting") {
-    return <PresentingCard profile={status.profile} secondsRemaining={status.secondsRemaining} />;
+    // Keyed by username so a brand new claim mounts a fresh recap from the top
+    // rather than resuming whatever scene the previous presenter left playing.
+    return <PresentingExperience key={status.username} profile={status.profile} />;
   }
 
   return <QrIdleScreen />;
