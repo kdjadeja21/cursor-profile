@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { QrIdleScreen } from "@/components/event/qr-idle-screen";
 import { PresentingExperience } from "@/components/event/presenting-experience";
-import type { SpotlightStatusResponse } from "@/lib/spotlight-lock";
+import {
+  isSameSpotlightSession,
+  type SpotlightStatusResponse,
+} from "@/lib/spotlight-lock";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -33,9 +36,13 @@ export function SpotlightDisplay() {
 
     const poll = async () => {
       const next = await fetchStatus();
-      if (!cancelled && next) {
-        setStatus(next);
+      if (cancelled || !next) {
+        return;
       }
+
+      // Keep the existing object when the session hasn't changed. A fresh JSON
+      // body every 2s would rebuild ProfileExperience and reset the recap timer.
+      setStatus((current) => (isSameSpotlightSession(current, next) ? current : next));
     };
 
     void poll();

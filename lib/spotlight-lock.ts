@@ -90,6 +90,26 @@ export function isExpired(
   return computeSecondsRemaining(startedAtIso, nowMs) <= 0;
 }
 
+/**
+ * Whether two status polls describe the same session. Used by the display so a
+ * 2-second poll that only updates `secondsRemaining` does not rebuild the recap
+ * and reset SceneDirector's auto-advance timer.
+ */
+export function isSameSpotlightSession(
+  current: SpotlightStatusResponse,
+  next: SpotlightStatusResponse,
+): boolean {
+  if (current.status === "idle" && next.status === "idle") {
+    return true;
+  }
+
+  if (current.status === "presenting" && next.status === "presenting") {
+    return current.username === next.username;
+  }
+
+  return false;
+}
+
 /** Hidden/disabled by callers when this returns null (empty/misconfigured list, §9). */
 export function pickCuratedHandle(
   random: () => number = Math.random,

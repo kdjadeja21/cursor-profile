@@ -5,7 +5,9 @@ import {
   EXPIRY_SECONDS,
   computeSecondsRemaining,
   isExpired,
+  isSameSpotlightSession,
   pickCuratedHandle,
+  type SpotlightStatusResponse,
 } from "./spotlight-lock.ts";
 
 describe("computeSecondsRemaining", () => {
@@ -43,6 +45,61 @@ describe("isExpired", () => {
     const startedAt = new Date("2026-01-01T00:00:00.000Z").toISOString();
     const now = new Date("2026-01-01T00:01:00.000Z").getTime();
     assert.equal(isExpired(startedAt, now), true);
+  });
+});
+
+describe("isSameSpotlightSession", () => {
+  const presenting = (username: string, secondsRemaining: number): SpotlightStatusResponse => ({
+    status: "presenting",
+    username,
+    isRandom: false,
+    secondsRemaining,
+    profile: {
+      profile: {
+        handle: username,
+        displayName: username,
+        avatarUrl: null,
+        visibility: null,
+        badges: [],
+        links: [],
+        createdAt: null,
+        updatedAt: null,
+      },
+      activity: {
+        mostActiveMonth: null,
+        mostActiveDay: null,
+        longestStreak: 0,
+        currentStreak: 0,
+        activeDates: [],
+        activityCounts: [],
+        agentsLocal: 0,
+        agentsCloud: 0,
+        longestAgentSeconds: 0,
+        tokensOverTime: [],
+        agentsOverTime: [],
+        topModels: [],
+      },
+    },
+  });
+
+  it("treats two idle polls as the same session", () => {
+    assert.equal(
+      isSameSpotlightSession({ status: "idle" }, { status: "idle" }),
+      true,
+    );
+  });
+
+  it("ignores countdown-only updates for the same presenter", () => {
+    assert.equal(isSameSpotlightSession(presenting("lauren", 58), presenting("lauren", 56)), true);
+  });
+
+  it("treats a new presenter as a different session", () => {
+    assert.equal(isSameSpotlightSession(presenting("lauren", 40), presenting("eric", 60)), false);
+  });
+
+  it("treats idle ↔ presenting as a session change", () => {
+    assert.equal(isSameSpotlightSession({ status: "idle" }, presenting("lauren", 60)), false);
+    assert.equal(isSameSpotlightSession(presenting("lauren", 1), { status: "idle" }), false);
   });
 });
 
