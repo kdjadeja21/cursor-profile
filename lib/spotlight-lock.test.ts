@@ -6,9 +6,45 @@ import {
   computeSecondsRemaining,
   isExpired,
   isSameSpotlightSession,
+  mergeSpotlightStatus,
   pickCuratedHandle,
   type SpotlightStatusResponse,
 } from "./spotlight-lock.ts";
+
+function presenting(username: string, secondsRemaining: number): SpotlightStatusResponse {
+  return {
+    status: "presenting",
+    username,
+    isRandom: false,
+    secondsRemaining,
+    profile: {
+      profile: {
+        handle: username,
+        displayName: username,
+        avatarUrl: null,
+        visibility: null,
+        badges: [],
+        links: [],
+        createdAt: null,
+        updatedAt: null,
+      },
+      activity: {
+        mostActiveMonth: null,
+        mostActiveDay: null,
+        longestStreak: 0,
+        currentStreak: 0,
+        activeDates: [],
+        activityCounts: [],
+        agentsLocal: 0,
+        agentsCloud: 0,
+        longestAgentSeconds: 0,
+        tokensOverTime: [],
+        agentsOverTime: [],
+        topModels: [],
+      },
+    },
+  };
+}
 
 describe("computeSecondsRemaining", () => {
   it("returns the full window right after a claim starts", () => {
@@ -49,39 +85,6 @@ describe("isExpired", () => {
 });
 
 describe("isSameSpotlightSession", () => {
-  const presenting = (username: string, secondsRemaining: number): SpotlightStatusResponse => ({
-    status: "presenting",
-    username,
-    isRandom: false,
-    secondsRemaining,
-    profile: {
-      profile: {
-        handle: username,
-        displayName: username,
-        avatarUrl: null,
-        visibility: null,
-        badges: [],
-        links: [],
-        createdAt: null,
-        updatedAt: null,
-      },
-      activity: {
-        mostActiveMonth: null,
-        mostActiveDay: null,
-        longestStreak: 0,
-        currentStreak: 0,
-        activeDates: [],
-        activityCounts: [],
-        agentsLocal: 0,
-        agentsCloud: 0,
-        longestAgentSeconds: 0,
-        tokensOverTime: [],
-        agentsOverTime: [],
-        topModels: [],
-      },
-    },
-  });
-
   it("treats two idle polls as the same session", () => {
     assert.equal(
       isSameSpotlightSession({ status: "idle" }, { status: "idle" }),
@@ -100,6 +103,26 @@ describe("isSameSpotlightSession", () => {
   it("treats idle ↔ presenting as a session change", () => {
     assert.equal(isSameSpotlightSession({ status: "idle" }, presenting("lauren", 60)), false);
     assert.equal(isSameSpotlightSession(presenting("lauren", 1), { status: "idle" }), false);
+  });
+});
+
+describe("mergeSpotlightStatus", () => {
+  it("keeps the current object when only the countdown changed", () => {
+    const current = presenting("lauren", 58);
+    const next = presenting("lauren", 56);
+    const merged = mergeSpotlightStatus(current, next);
+
+    assert.equal(merged.status, "presenting");
+    if (merged.status === "presenting") {
+      assert.equal(merged.secondsRemaining, 56);
+      assert.equal(merged.profile, current.profile);
+    }
+  });
+
+  it("replaces the session when the presenter changes", () => {
+    const current = presenting("lauren", 40);
+    const next = presenting("eric", 60);
+    assert.equal(mergeSpotlightStatus(current, next), next);
   });
 });
 

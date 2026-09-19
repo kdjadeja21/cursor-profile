@@ -3,24 +3,16 @@
 import { useId, useRef, useState } from "react";
 import { MagneticButton } from "@/components/fx/magnetic";
 import { GsapSwap } from "@/components/fx/gsap-swap";
-import { useMood } from "@/lib/use-mood";
 import { cx } from "@/lib/cx";
-
-type ClaimSuccess = {
-  username: string;
-  displayName: string;
-  isRandom: boolean;
-};
 
 type SubmitState =
   | { kind: "idle" }
   | { kind: "pending" }
-  | { kind: "success"; data: ClaimSuccess }
   | { kind: "error"; message: string };
 
 async function submitClaim(
   payload: { username: string } | { random: true },
-): Promise<{ ok: true; data: ClaimSuccess } | { ok: false; message: string }> {
+): Promise<{ ok: true; username: string } | { ok: false; message: string }> {
   try {
     const response = await fetch("/event/api/claim", {
       method: "POST",
@@ -37,16 +29,13 @@ async function submitClaim(
       return { ok: false, message };
     }
 
-    const profile = record.profile as { handle?: string; displayName?: string } | undefined;
+    const profile = record.profile as { profile?: { handle?: string } } | undefined;
+    const username =
+      typeof record.username === "string"
+        ? record.username
+        : profile?.profile?.handle ?? "";
 
-    return {
-      ok: true,
-      data: {
-        username: typeof record.username === "string" ? record.username : profile?.handle ?? "",
-        displayName: profile?.displayName ?? profile?.handle ?? "",
-        isRandom: record.isRandom === true,
-      },
-    };
+    return { ok: true, username };
   } catch {
     return { ok: false, message: "Couldn't reach the spotlight. Check your connection." };
   }
@@ -66,32 +55,38 @@ async function fireSuccessConfetti() {
     ticks: 200,
     scalar: 1.1,
     colors: ["#f54e00", "#ff7a3d", "#ffb347", "#f7f5f2"],
-    origin: { y: 0.65 },
+    origin: { y: 0.55 },
     disableForReducedMotion: true,
   });
 }
 
-export function EntryForm({ hasSurprise }: { hasSurprise: boolean }) {
+export function EntryForm({
+  hasSurprise,
+  onClaimed,
+}: {
+  hasSurprise: boolean;
+  onClaimed: (username: string) => void;
+}) {
   const inputId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [handle, setHandle] = useState("");
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
 
-  useMood("idle");
-
   const pending = state.kind === "pending";
+  const error = state.kind === "error" ? state.message : null;
 
   const runClaim = async (payload: { username: string } | { random: true }) => {
     setState({ kind: "pending" });
     const result = await submitClaim(payload);
 
     if (result.ok) {
-      setState({ kind: "success", data: result.data });
+      onClaimed(result.username);
       void fireSuccessConfetti();
-    } else {
-      setState({ kind: "error", message: result.message });
+      return;
     }
+
+    setState({ kind: "error", message: result.message });
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -103,35 +98,6 @@ export function EntryForm({ hasSurprise }: { hasSurprise: boolean }) {
     }
     void runClaim({ username: trimmed });
   };
-
-  const tryAgain = () => {
-    setState({ kind: "idle" });
-    inputRef.current?.focus();
-  };
-
-  if (state.kind === "success") {
-    const { data } = state;
-    return (
-      <div
-        role="status"
-        className="glass shimmer shimmer-auto border-accent/50 shadow-glow flex w-full max-w-lg flex-col items-center gap-3 rounded-3xl p-8 text-center"
-      >
-        <span aria-hidden="true" className="text-3xl">
-          ✦
-        </span>
-        <p className="text-accent text-heading font-bold">You&rsquo;re up!</p>
-        <p className="text-ink-muted text-base">
-          {data.displayName || `@${data.username}`} is live on the main screen for the next
-          60 seconds.
-        </p>
-        <MagneticButton type="button" variant="ghost" onClick={tryAgain} className="mt-3">
-          Spotlight someone else
-        </MagneticButton>
-      </div>
-    );
-  }
-
-  const error = state.kind === "error" ? state.message : null;
 
   return (
     <form

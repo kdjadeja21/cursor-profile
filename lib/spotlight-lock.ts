@@ -110,6 +110,31 @@ export function isSameSpotlightSession(
   return false;
 }
 
+/**
+ * Keeps the existing status object when the session has not changed. Updates
+ * `secondsRemaining` in place so the entry route can show a live countdown
+ * without handing the display a new `profile` reference (which would reset
+ * the recap timer).
+ */
+export function mergeSpotlightStatus(
+  current: SpotlightStatusResponse,
+  next: SpotlightStatusResponse,
+): SpotlightStatusResponse {
+  if (!isSameSpotlightSession(current, next)) {
+    return next;
+  }
+
+  if (
+    current.status === "presenting" &&
+    next.status === "presenting" &&
+    current.secondsRemaining !== next.secondsRemaining
+  ) {
+    return { ...current, secondsRemaining: next.secondsRemaining };
+  }
+
+  return current;
+}
+
 /** Hidden/disabled by callers when this returns null (empty/misconfigured list, §9). */
 export function pickCuratedHandle(
   random: () => number = Math.random,

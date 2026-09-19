@@ -1,58 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { QrIdleScreen } from "@/components/event/qr-idle-screen";
 import { PresentingExperience } from "@/components/event/presenting-experience";
-import {
-  isSameSpotlightSession,
-  type SpotlightStatusResponse,
-} from "@/lib/spotlight-lock";
-
-const POLL_INTERVAL_MS = 2000;
-
-async function fetchStatus(): Promise<SpotlightStatusResponse | null> {
-  try {
-    const response = await fetch("/event/api/status", { cache: "no-store" });
-    if (!response.ok) {
-      return null;
-    }
-    return (await response.json()) as SpotlightStatusResponse;
-  } catch {
-    return null;
-  }
-}
+import { useSpotlightStatus } from "@/components/event/use-spotlight-status";
 
 /**
- * Polls the status endpoint every ~2s (PRD §7). Expiry is entirely server-computed
- * (FR5) — this component doesn't run its own countdown; it just swaps to idle
- * once a poll reports `status: "idle"` again. When presenting, it renders the
- * exact same scroll-through recap as `/@handle`.
+ * Polls the shared status hook every ~2s (PRD §7). Expiry is entirely
+ * server-computed (FR5) — this component doesn't run its own countdown; it
+ * swaps to idle once a poll reports `status: "idle"` again. When presenting,
+ * it renders the exact same scroll-through recap as `/@handle`.
  */
 export function SpotlightDisplay() {
-  const [status, setStatus] = useState<SpotlightStatusResponse>({ status: "idle" });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const poll = async () => {
-      const next = await fetchStatus();
-      if (cancelled || !next) {
-        return;
-      }
-
-      // Keep the existing object when the session hasn't changed. A fresh JSON
-      // body every 2s would rebuild ProfileExperience and reset the recap timer.
-      setStatus((current) => (isSameSpotlightSession(current, next) ? current : next));
-    };
-
-    void poll();
-    const interval = setInterval(poll, POLL_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
+  const status = useSpotlightStatus();
 
   if (status.status === "presenting") {
     // Keyed by username so a brand new claim mounts a fresh recap from the top
