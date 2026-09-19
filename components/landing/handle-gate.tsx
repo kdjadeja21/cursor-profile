@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  startTransition,
   useActionState,
   useEffect,
   useId,
@@ -187,7 +188,9 @@ export function HandleGate({
     setDismissed(false);
     const formData = new FormData();
     formData.set("handle", next);
-    formAction(formData);
+    startTransition(() => {
+      formAction(formData);
+    });
   };
 
   return (
