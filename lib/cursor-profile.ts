@@ -222,20 +222,16 @@ function toActivity(raw: Record<string, unknown>): ProfileActivity {
   };
 }
 
-export async function getCursorProfile(
-  handleInput: string,
-): Promise<ProfileResult> {
-  "use cache";
-  cacheLife("hours");
+const UPSTREAM_TIMEOUT_MS = 8_000;
 
-  const handle = normalizeHandle(handleInput);
-
+async function fetchCursorProfile(handle: string): Promise<ProfileResult> {
   let upstream: Response;
   try {
     upstream = await fetch(UPSTREAM_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ handle }),
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch {
     return { ok: false, reason: "unavailable" };
@@ -268,4 +264,32 @@ export async function getCursorProfile(
     profile,
     activity: toActivity(asRecord(body.activitySummary)),
   };
+}
+
+export async function getCursorProfile(
+  handleInput: string,
+): Promise<ProfileResult> {
+  "use cache";
+
+  const handle = normalizeHandle(handleInput);
+  const result = await fetchCursorProfile(handle);
+
+  if (result.ok) {
+    cacheLife("hours");
+    return result;
+  }
+
+  switch (result.reason) {
+    case "unavailable":
+      // A live-event hiccup must not 502 this handle for the rest of the night.
+      cacheLife({ stale: 0, revalidate: 5, expire: 10 });
+      return result;
+    case "not-found":
+      cacheLife({ stale: 60, revalidate: 120, expire: 300 });
+      return result;
+    default: {
+      const exhaustive: never = result.reason;
+      return exhaustive;
+    }
+  }
 }

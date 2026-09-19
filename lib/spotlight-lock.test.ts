@@ -10,6 +10,7 @@ import {
   nextStatusDelayMs,
   pickCuratedHandle,
   nextSurpriseHandle,
+  shouldFetchProfileForClaim,
   DISPLAY_IDLE_POLL_MS,
   MIN_STATUS_REFRESH_MS,
   type SpotlightStatusResponse,
@@ -146,6 +147,16 @@ describe("mergeSpotlightStatus", () => {
     const current = presenting("lauren", 40);
     const next = presenting("eric", 60);
     assert.equal(mergeSpotlightStatus(current, next), next);
+  });
+});
+
+describe("shouldFetchProfileForClaim", () => {
+  it("skips the profile fetch while someone is presenting", () => {
+    assert.equal(shouldFetchProfileForClaim(presenting("lauren", 40)), false);
+  });
+
+  it("fetches a profile when the slot is idle", () => {
+    assert.equal(shouldFetchProfileForClaim({ status: "idle" }), true);
   });
 });
 

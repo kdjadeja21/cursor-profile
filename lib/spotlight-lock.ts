@@ -67,6 +67,13 @@ export type ClaimResult =
     }
   | { ok: false; reason: ClaimFailureReason };
 
+/** Occupied slots should 409 before paying for an upstream profile fetch. */
+export function shouldFetchProfileForClaim(
+  status: SpotlightStatusResponse,
+): boolean {
+  return status.status !== "presenting";
+}
+
 /** Seconds left on a presenting slot given when it started — never trusts a client timer. */
 export function computeSecondsRemaining(
   startedAtIso: string | null,

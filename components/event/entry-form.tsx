@@ -73,6 +73,7 @@ export function EntryForm({
   const inputId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const inFlightRef = useRef(false);
   const [handle, setHandle] = useState("");
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
 
@@ -82,17 +83,27 @@ export function EntryForm({
   const runClaim = async (
     payload: { username: string } | { random: true; username?: string },
   ) => {
-    setState({ kind: "pending" });
-    const result = await submitClaim(payload);
-
-    if (result.ok) {
-      onClaimed(result.username);
-      void fireSuccessConfetti();
-    } else {
-      setState({ kind: "error", message: result.message });
+    if (inFlightRef.current) {
+      return;
     }
 
-    onSettled();
+    inFlightRef.current = true;
+    setState({ kind: "pending" });
+
+    try {
+      const result = await submitClaim(payload);
+
+      if (result.ok) {
+        onClaimed(result.username);
+        void fireSuccessConfetti();
+      } else {
+        setState({ kind: "error", message: result.message });
+      }
+
+      onSettled();
+    } finally {
+      inFlightRef.current = false;
+    }
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
