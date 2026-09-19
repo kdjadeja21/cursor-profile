@@ -44,6 +44,23 @@ describe("parseSocialLink", () => {
       label: "not a url",
     });
   });
+
+  it("recognizes X and GitHub when the profile omitted https://", () => {
+    assert.deepEqual(parseSocialLink("x.com/ericzakariasson"), {
+      href: "https://x.com/ericzakariasson",
+      kind: "x",
+      label: "@ericzakariasson",
+    });
+
+    assert.deepEqual(parseSocialLink("github.com/ericzakariasson"), {
+      href: "https://github.com/ericzakariasson",
+      kind: "github",
+      label: "ericzakariasson",
+    });
+
+    assert.equal(parseSocialLink("//twitter.com/ericzakariasson").kind, "x");
+    assert.equal(parseSocialLink("www.github.com/ericzakariasson").kind, "github");
+  });
 });
 
 describe("parseSocialLinks", () => {
