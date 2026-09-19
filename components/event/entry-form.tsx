@@ -63,9 +63,11 @@ async function fireSuccessConfetti() {
 export function EntryForm({
   hasSurprise,
   onClaimed,
+  onSettled,
 }: {
   hasSurprise: boolean;
   onClaimed: (username: string) => void;
+  onSettled: () => void;
 }) {
   const inputId = useId();
   const errorId = useId();
@@ -83,10 +85,11 @@ export function EntryForm({
     if (result.ok) {
       onClaimed(result.username);
       void fireSuccessConfetti();
-      return;
+    } else {
+      setState({ kind: "error", message: result.message });
     }
 
-    setState({ kind: "error", message: result.message });
+    onSettled();
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {

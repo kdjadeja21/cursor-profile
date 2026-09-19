@@ -91,9 +91,8 @@ export function isExpired(
 }
 
 /**
- * Whether two status polls describe the same session. Used by the display so a
- * 2-second poll that only updates `secondsRemaining` does not rebuild the recap
- * and reset SceneDirector's auto-advance timer.
+ * Whether two status payloads describe the same session. Used so a confirmation
+ * fetch that only updates `secondsRemaining` does not rebuild the recap.
  */
 export function isSameSpotlightSession(
   current: SpotlightStatusResponse,
@@ -110,11 +109,45 @@ export function isSameSpotlightSession(
   return false;
 }
 
+export type SpotlightWatchMode = "display" | "entry";
+
+/** How often the projector refetches while idle, waiting for the next claim. */
+export const DISPLAY_IDLE_POLL_MS = 5_000;
+
+/** Floor so a 0s remaining payload still triggers one confirmation fetch. */
+export const MIN_STATUS_REFRESH_MS = 250;
+
+/**
+ * When to hit `/event/api/status` again. `null` means stop — the entry form
+ * does not poll while idle (a claim is the next source of truth).
+ *
+ * Presenting never uses a 1–2s interval: the server already told us how long
+ * the slot lasts, so we wait that long and confirm once.
+ */
+export function nextStatusDelayMs(
+  status: SpotlightStatusResponse,
+  mode: SpotlightWatchMode,
+): number | null {
+  if (status.status === "presenting") {
+    return Math.max(MIN_STATUS_REFRESH_MS, status.secondsRemaining * 1000);
+  }
+
+  switch (mode) {
+    case "entry":
+      return null;
+    case "display":
+      return DISPLAY_IDLE_POLL_MS;
+    default: {
+      const exhaustive: never = mode;
+      return exhaustive;
+    }
+  }
+}
+
 /**
  * Keeps the existing status object when the session has not changed. Updates
- * `secondsRemaining` in place so the entry route can show a live countdown
- * without handing the display a new `profile` reference (which would reset
- * the recap timer).
+ * `secondsRemaining` in place so a rare confirmation fetch can refresh the
+ * countdown without handing the display a new `profile` reference.
  */
 export function mergeSpotlightStatus(
   current: SpotlightStatusResponse,

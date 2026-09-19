@@ -7,7 +7,10 @@ import {
   isExpired,
   isSameSpotlightSession,
   mergeSpotlightStatus,
+  nextStatusDelayMs,
   pickCuratedHandle,
+  DISPLAY_IDLE_POLL_MS,
+  MIN_STATUS_REFRESH_MS,
   type SpotlightStatusResponse,
 } from "./spotlight-lock.ts";
 
@@ -103,6 +106,25 @@ describe("isSameSpotlightSession", () => {
   it("treats idle ↔ presenting as a session change", () => {
     assert.equal(isSameSpotlightSession({ status: "idle" }, presenting("lauren", 60)), false);
     assert.equal(isSameSpotlightSession(presenting("lauren", 1), { status: "idle" }), false);
+  });
+});
+
+describe("nextStatusDelayMs", () => {
+  it("waits for the remaining slot time instead of polling while presenting", () => {
+    assert.equal(nextStatusDelayMs(presenting("lauren", 12), "display"), 12_000);
+    assert.equal(nextStatusDelayMs(presenting("lauren", 12), "entry"), 12_000);
+  });
+
+  it("floors a zero remaining payload so expiry still gets one confirmation fetch", () => {
+    assert.equal(nextStatusDelayMs(presenting("lauren", 0), "display"), MIN_STATUS_REFRESH_MS);
+  });
+
+  it("does not poll the entry route while idle", () => {
+    assert.equal(nextStatusDelayMs({ status: "idle" }, "entry"), null);
+  });
+
+  it("uses the idle interval only on the display route", () => {
+    assert.equal(nextStatusDelayMs({ status: "idle" }, "display"), DISPLAY_IDLE_POLL_MS);
   });
 });
 

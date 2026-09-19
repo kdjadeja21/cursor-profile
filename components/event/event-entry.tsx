@@ -17,6 +17,16 @@ function StatusCard({
   detail: string;
   secondsRemaining: number;
 }) {
+  const [left, setLeft] = useState(secondsRemaining);
+
+  useEffect(() => {
+    const deadline = Date.now() + secondsRemaining * 1000;
+    const interval = setInterval(() => {
+      setLeft(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [secondsRemaining]);
+
   return (
     <div
       role="status"
@@ -27,13 +37,13 @@ function StatusCard({
       </span>
       <h1 className="text-display text-accent font-bold text-balance">{title}</h1>
       <p className="text-ink-muted text-lead text-balance">{detail}</p>
-      <p className="text-ink-faint text-base tabular">{secondsRemaining}s left</p>
+      <p className="text-ink-faint text-base tabular">{left}s left</p>
     </div>
   );
 }
 
 export function EventEntry({ hasSurprise }: { hasSurprise: boolean }) {
-  const status = useSpotlightStatus();
+  const { status, refresh } = useSpotlightStatus("entry");
   const [claimedByMe, setClaimedByMe] = useState<string | null>(null);
   const sawPresenting = useRef(false);
 
@@ -82,6 +92,7 @@ export function EventEntry({ hasSurprise }: { hasSurprise: boolean }) {
       {occupied && username ? (
         <div className="relative z-10 mt-4 w-full">
           <StatusCard
+            key={username}
             title={mine ? "You're up!" : "Someone's up right now"}
             detail={
               mine
@@ -109,7 +120,13 @@ export function EventEntry({ hasSurprise }: { hasSurprise: boolean }) {
           </p>
 
           <div className="relative z-10 mt-10 w-full max-w-2xl">
-            <EntryForm hasSurprise={hasSurprise} onClaimed={setClaimedByMe} />
+            <EntryForm
+              hasSurprise={hasSurprise}
+              onClaimed={setClaimedByMe}
+              onSettled={() => {
+                void refresh();
+              }}
+            />
           </div>
         </>
       )}

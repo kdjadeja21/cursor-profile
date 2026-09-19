@@ -26,7 +26,7 @@ An event-display feature: attendees claim the main screen with their Cursor
 profile (or a curated "Surprise Me" pick) for 60 seconds, one at a time.
 
 - `/event` — attendee entry screen (the QR target).
-- `/event/display` — presentation screen for the projector/TV; polls status every ~2s.
+- `/event/display` — presentation screen for the projector/TV. Fetches status on mount, every 5s while idle, and once when the current slot is due to expire.
 - `/event/api/status` and `/event/api/claim` — the two backing API routes.
 
 State lives in a single-row `spotlight_session` table in Supabase Postgres

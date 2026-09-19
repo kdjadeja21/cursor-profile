@@ -111,4 +111,4 @@ server after adding them.
 | `500` with "Supabase is not configured" | `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` missing/misspelled, or dev server wasn't restarted after adding them. |
 | `spotlight_session` table missing | The migration wasn't run against this project — repeat step 2. |
 | Claims always fail with "Someone's up right now" even when idle | Check the row in Table Editor: if `status` is stuck on `presenting` with a very old `started_at`, the expiry check runs on read/claim, not on a timer — hit `/event/api/status` once to trigger it. |
-| Claim succeeds but the display never updates | Confirm `/event/display` is actually polling `/event/api/status` (check the Network tab) and that both routes are pointed at the same Supabase project. |
+| Claim succeeds but the display never updates | The display fetches status on mount and every 5s while idle — wait a moment, confirm `/event/api/status` returns `presenting`, and that both routes use the same Supabase project. |
