@@ -6,6 +6,7 @@ import {
   EXPIRY_SECONDS,
   computeSecondsRemaining,
   pickCuratedHandle,
+  shouldFetchProfileForClaim,
   type ClaimInput,
   type ClaimResult,
   type SpotlightProfileSnapshot,
@@ -113,6 +114,9 @@ function resolveRandomHandle(preferredUsername?: string): string | null {
  * separate statements, but that's fine: the claim's own `WHERE status = 'idle'` guard
  * is the actual race-breaker, and it's correct on its own regardless of what ran before
  * it — only one concurrent caller's UPDATE can ever match that row.
+ *
+ * An occupied slot 409s before `getCursorProfile` so a burst of retries at the end
+ * of a slot does not stampede cursor.com.
  */
 export async function claimSpotlight(input: ClaimInput): Promise<ClaimResult> {
   let handle: string;
@@ -131,6 +135,11 @@ export async function claimSpotlight(input: ClaimInput): Promise<ClaimResult> {
       return { ok: false, reason: "invalid-handle" };
     }
     handle = parsed;
+  }
+
+  const current = await getSpotlightStatus();
+  if (!shouldFetchProfileForClaim(current)) {
+    return { ok: false, reason: "already-presenting" };
   }
 
   const profileResult = await getCursorProfile(handle);
