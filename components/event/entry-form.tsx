@@ -4,6 +4,7 @@ import { useId, useRef, useState } from "react";
 import { MagneticButton } from "@/components/fx/magnetic";
 import { GsapSwap } from "@/components/fx/gsap-swap";
 import { takeSurpriseHandle } from "@/lib/surprise-bag";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 type SubmitState =
@@ -70,12 +71,14 @@ export function EntryForm({
   onClaimed: (username: string) => void;
   onSettled: () => void;
 }) {
+  const reduced = useReducedMotion();
   const inputId = useId();
   const errorId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const inFlightRef = useRef(false);
   const [handle, setHandle] = useState("");
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
+  const [focused, setFocused] = useState(false);
 
   const pending = state.kind === "pending";
   const error = state.kind === "error" ? state.message : null;
@@ -125,12 +128,21 @@ export function EntryForm({
         className={cx(
           "glass flex w-full flex-col items-stretch gap-3 rounded-3xl p-3 transition-[box-shadow,border-color] duration-500 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:py-2 sm:pr-2 sm:pl-7",
           !error && "border-accent/40",
+          (focused || pending) && !error && "border-accent/60 shadow-glow",
+          pending && !error && "shimmer-auto",
           error &&
             "border-danger bg-danger/10 shadow-[0_0_70px_-8px_var(--color-danger),inset_0_0_40px_-20px_var(--color-danger)]",
+          error && reduced !== true && "animate-[shake_0.5s_ease-in-out]",
         )}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-0">
-          <span aria-hidden="true" className="text-title text-ink-faint font-semibold">
+          <span
+            aria-hidden="true"
+            className={cx(
+              "text-title inline-block font-semibold transition-colors duration-300",
+              focused || pending ? "text-accent text-glow" : "text-ink-faint",
+            )}
+          >
             @
           </span>
           <label htmlFor={inputId} className="sr-only">
@@ -149,6 +161,8 @@ export function EntryForm({
             readOnly={pending}
             aria-invalid={error !== null}
             aria-describedby={errorId}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             onChange={(event) => {
               setHandle(event.target.value);
               if (state.kind === "error") {
