@@ -21,18 +21,10 @@ import { GsapSwap } from "@/components/fx/gsap-swap";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { useMood } from "@/lib/use-mood";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { takeSurpriseHandle } from "@/lib/surprise-bag";
 import { cx } from "@/lib/cx";
 
 const SAMPLE_HANDLES = ["your-username", "cursor-ambassador"];
-
-const FEATURED_HANDLES = [
-  "eric",
-  "lauren",
-  "leerob",
-  "emily",
-  "nate",
-  "erik",
-] as const;
 
 function errorCopy(kind: GateError): string {
   switch (kind) {
@@ -117,7 +109,6 @@ export function HandleGate({
   const [dismissed, setDismissed] = useState(false);
   const [handle, setHandle] = useState(initialHandle);
   const [focused, setFocused] = useState(false);
-  const lastRandomRef = useRef<string | null>(null);
   const error = pending || dismissed ? null : state.error;
   const placeholder = useTypewriterPlaceholder(reduced !== true && handle.length === 0);
 
@@ -179,11 +170,11 @@ export function HandleGate({
   };
 
   const playRandomProfile = () => {
-    const pool = lastRandomRef.current
-      ? FEATURED_HANDLES.filter((name) => name !== lastRandomRef.current)
-      : FEATURED_HANDLES;
-    const next = pool[Math.floor(Math.random() * pool.length)] ?? FEATURED_HANDLES[0];
-    lastRandomRef.current = next;
+    const next = takeSurpriseHandle();
+    if (!next) {
+      return;
+    }
+
     setHandle(next);
     setDismissed(false);
     const formData = new FormData();

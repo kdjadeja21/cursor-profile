@@ -3,6 +3,7 @@
 import { useId, useRef, useState } from "react";
 import { MagneticButton } from "@/components/fx/magnetic";
 import { GsapSwap } from "@/components/fx/gsap-swap";
+import { takeSurpriseHandle } from "@/lib/surprise-bag";
 import { cx } from "@/lib/cx";
 
 type SubmitState =
@@ -11,7 +12,7 @@ type SubmitState =
   | { kind: "error"; message: string };
 
 async function submitClaim(
-  payload: { username: string } | { random: true },
+  payload: { username: string } | { random: true; username?: string },
 ): Promise<{ ok: true; username: string } | { ok: false; message: string }> {
   try {
     const response = await fetch("/event/api/claim", {
@@ -78,7 +79,9 @@ export function EntryForm({
   const pending = state.kind === "pending";
   const error = state.kind === "error" ? state.message : null;
 
-  const runClaim = async (payload: { username: string } | { random: true }) => {
+  const runClaim = async (
+    payload: { username: string } | { random: true; username?: string },
+  ) => {
     setState({ kind: "pending" });
     const result = await submitClaim(payload);
 
@@ -160,7 +163,17 @@ export function EntryForm({
           variant="ghost"
           size="lg"
           disabled={pending}
-          onClick={() => void runClaim({ random: true })}
+          onClick={() => {
+            const username = takeSurpriseHandle();
+            if (!username) {
+              setState({
+                kind: "error",
+                message: "Surprise Me isn't available right now.",
+              });
+              return;
+            }
+            void runClaim({ random: true, username });
+          }}
         >
           Surprise me
           <span aria-hidden="true">✦</span>
