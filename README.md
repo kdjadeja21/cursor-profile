@@ -20,6 +20,29 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Live Profile Spotlight (`/event`)
+
+An event-display feature: attendees claim the main screen with their Cursor
+profile (or a curated "Surprise Me" pick) for 60 seconds, one at a time.
+
+- `/event` — attendee entry screen (the QR target).
+- `/event/display` — presentation screen for the projector/TV; polls status every ~2s.
+- `/event/api/status` and `/event/api/claim` — the two backing API routes.
+
+State lives in a single-row `spotlight_session` table in Supabase Postgres
+(see [supabase/migrations/0001_spotlight_session.sql](supabase/migrations/0001_spotlight_session.sql)).
+Run that migration against your Supabase project, then set these server-only
+env vars (never prefix them with `NEXT_PUBLIC_` — the service-role key must
+stay off the client):
+
+```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+All reads/writes go through route handlers using the service-role key, so no
+RLS policy needs to allow client access to the table.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
