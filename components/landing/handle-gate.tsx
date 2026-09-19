@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  startTransition,
   useActionState,
   useEffect,
   useId,
@@ -13,18 +14,25 @@ import {
   type GateError,
   type GateState,
 } from "@/app/play-profile";
-import { LoadingCinematic } from "@/components/fx/loading-cinematic";
 import { MagneticButton } from "@/components/fx/magnetic";
 import { ParticleField } from "@/components/fx/particle-field";
 import { SplitText } from "@/components/fx/split-text";
 import { GsapSwap } from "@/components/fx/gsap-swap";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { parseHandleInput } from "@/lib/handle";
 import { useMood } from "@/lib/use-mood";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
 const SAMPLE_HANDLES = ["your-username", "cursor-ambassador"];
+
+const FEATURED_HANDLES = [
+  "eric",
+  "lauren",
+  "leerob",
+  "emily",
+  "nate",
+  "erik",
+] as const;
 
 function errorCopy(kind: GateError): string {
   switch (kind) {
@@ -109,6 +117,7 @@ export function HandleGate({
   const [dismissed, setDismissed] = useState(false);
   const [handle, setHandle] = useState(initialHandle);
   const [focused, setFocused] = useState(false);
+  const lastRandomRef = useRef<string | null>(null);
   const error = pending || dismissed ? null : state.error;
   const placeholder = useTypewriterPlaceholder(reduced !== true && handle.length === 0);
 
@@ -122,7 +131,7 @@ export function HandleGate({
 
   useGSAP(
     () => {
-      if (pending || reduced !== false) {
+      if (reduced !== false) {
         return;
       }
 
@@ -145,7 +154,7 @@ export function HandleGate({
         );
       }
     },
-    { dependencies: [pending, reduced] },
+    { dependencies: [reduced] },
   );
 
   useGSAP(
@@ -169,117 +178,167 @@ export function HandleGate({
     return formAction(formData);
   };
 
+  const playRandomProfile = () => {
+    const pool = lastRandomRef.current
+      ? FEATURED_HANDLES.filter((name) => name !== lastRandomRef.current)
+      : FEATURED_HANDLES;
+    const next = pool[Math.floor(Math.random() * pool.length)] ?? FEATURED_HANDLES[0];
+    lastRandomRef.current = next;
+    setHandle(next);
+    setDismissed(false);
+    const formData = new FormData();
+    formData.set("handle", next);
+    startTransition(() => {
+      formAction(formData);
+    });
+  };
+
   return (
     <main className="relative flex flex-1 flex-col items-center justify-center overflow-x-clip">
       <ParticleField />
 
-      {pending ? (
-        <div className="relative z-10 w-full">
-          <LoadingCinematic handle={parseHandleInput(handle)} />
+      <form
+        ref={formRef}
+        action={submitAction}
+        aria-busy={pending}
+        className="relative z-10 flex w-full max-w-4xl flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16"
+      >
+        <div ref={logoRef} className="float mb-10">
+          <Image
+            src="/cursor-lockup.svg"
+            alt="Cursor"
+            width={220}
+            height={53}
+            priority
+            className="h-12 w-auto drop-shadow-[0_0_28px_rgba(245,78,0,0.45)] sm:h-16"
+          />
         </div>
-      ) : (
-        <form
-          ref={formRef}
-          action={submitAction}
-          className="relative z-10 flex w-full max-w-4xl flex-col items-center px-4 py-12 text-center sm:px-6 sm:py-16"
+
+        <p className="text-accent text-micro mb-5 tracking-[0.32em] uppercase">
+          <SplitText text="The year in code" by="words" delay={0.3} />
+        </p>
+
+        <h1 className="text-hero max-w-[12ch] overflow-visible font-bold sm:max-w-none">
+          <SplitText
+            text="Whose year is it?"
+            by="words"
+            delay={0.45}
+            unitClassName="gradient-ink"
+            caret
+          />
+        </h1>
+
+        <div
+          ref={pillRef}
+          className={cx(
+            "glass mt-8 flex w-full max-w-3xl flex-col items-stretch gap-3 rounded-3xl p-3 transition-[box-shadow,border-color] duration-500 sm:mt-12 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:py-2 sm:pr-2 sm:pl-7",
+            (focused || pending) && !error && "border-accent/60 shadow-glow",
+            pending && !error && "shimmer-auto",
+            error &&
+              "border-danger bg-danger/10 shadow-[0_0_70px_-8px_var(--color-danger),inset_0_0_40px_-20px_var(--color-danger)]",
+            error && reduced !== true && "animate-[shake_0.5s_ease-in-out]",
+          )}
         >
-          <div ref={logoRef} className="float mb-10">
-            <Image
-              src="/cursor-lockup.svg"
-              alt="Cursor"
-              width={220}
-              height={53}
-              priority
-              className="h-12 w-auto drop-shadow-[0_0_28px_rgba(245,78,0,0.45)] sm:h-16"
+          <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-0">
+            <span
+              ref={atRef}
+              aria-hidden="true"
+              className={cx(
+                "text-heading sm:text-display inline-block font-semibold transition-colors duration-300",
+                focused || pending ? "text-accent text-glow" : "text-ink-faint",
+              )}
+            >
+              @
+            </span>
+            <label htmlFor={inputId} className="sr-only">
+              Username
+            </label>
+            <input
+              ref={inputRef}
+              id={inputId}
+              name="handle"
+              type="text"
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={placeholder}
+              value={handle}
+              readOnly={pending}
+              aria-invalid={error !== null}
+              aria-describedby={errorId}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onChange={(event) => {
+                setHandle(event.target.value);
+                if (error) {
+                  setDismissed(true);
+                }
+              }}
+              className="text-title sm:text-display text-ink placeholder:text-ink-faint/60 min-w-0 flex-1 bg-transparent py-3 font-semibold outline-none sm:py-4"
             />
           </div>
-
-          <p className="text-accent text-micro mb-5 tracking-[0.32em] uppercase">
-            <SplitText text="The year in code" by="words" delay={0.3} />
-          </p>
-
-          <h1 className="text-hero max-w-[12ch] overflow-visible font-bold sm:max-w-none">
-            <SplitText
-              text="Whose year is it?"
-              by="words"
-              delay={0.45}
-              unitClassName="gradient-ink"
-              caret
-            />
-          </h1>
-
-          <div
-            ref={pillRef}
+          <MagneticButton
+            type="submit"
+            size="lg"
+            disabled={pending}
             className={cx(
-              "glass mt-8 flex w-full max-w-3xl flex-col items-stretch gap-3 rounded-3xl p-3 transition-[box-shadow,border-color] duration-500 sm:mt-12 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:py-2 sm:pr-2 sm:pl-7",
-              focused && !error && "border-accent/60 shadow-glow",
-              error &&
-                "border-danger bg-danger/10 shadow-[0_0_70px_-8px_var(--color-danger),inset_0_0_40px_-20px_var(--color-danger)]",
-              error && reduced !== true && "animate-[shake_0.5s_ease-in-out]",
+              "w-full shrink-0 sm:w-auto",
+              pending && "disabled:opacity-100 shimmer-auto",
             )}
           >
-            <div className="flex min-w-0 flex-1 items-center gap-2 px-3 sm:px-0">
-              <span
-                ref={atRef}
-                aria-hidden="true"
-                className={cx(
-                  "text-heading sm:text-display inline-block font-semibold transition-colors duration-300",
-                  focused ? "text-accent text-glow" : "text-ink-faint",
-                )}
-              >
-                @
-              </span>
-              <label htmlFor={inputId} className="sr-only">
-                Username
-              </label>
-              <input
-                ref={inputRef}
-                id={inputId}
-                name="handle"
-                type="text"
-                autoComplete="off"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder={placeholder}
-                value={handle}
-                aria-invalid={error !== null}
-                aria-describedby={error ? errorId : undefined}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                onChange={(event) => {
-                  setHandle(event.target.value);
-                  if (error) {
-                    setDismissed(true);
-                  }
-                }}
-                className="text-title sm:text-display text-ink placeholder:text-ink-faint/60 min-w-0 flex-1 bg-transparent py-3 font-semibold outline-none sm:py-4"
-              />
-            </div>
-            <MagneticButton type="submit" size="lg" className="w-full shrink-0 sm:w-auto">
-              Play
-              <span aria-hidden="true" className="text-xl leading-none">
-                →
-              </span>
-            </MagneticButton>
-          </div>
+            {pending ? (
+              <>
+                Fetching
+                <span aria-hidden="true" className="tracking-[0.35em]">
+                  …
+                </span>
+              </>
+            ) : (
+              <>
+                Play
+                <span aria-hidden="true" className="text-xl leading-none">
+                  →
+                </span>
+              </>
+            )}
+          </MagneticButton>
+        </div>
 
-          <div className="relative mt-6 h-[1.8em] w-full">
-            <GsapSwap id={error ?? "hint"} className="absolute inset-x-0">
-              <p
-                id={errorId}
-                role={error ? "alert" : undefined}
-                className={cx(
-                  "text-base",
-                  error ? "text-danger-text" : "text-ink-faint",
-                )}
-              >
-                {error ? errorCopy(error) : "Public profiles only. Press Enter to play."}
-              </p>
-            </GsapSwap>
-          </div>
-        </form>
-      )}
+        <MagneticButton
+          type="button"
+          variant="ghost"
+          size="lg"
+          disabled={pending}
+          onClick={playRandomProfile}
+          className="mt-5"
+        >
+          Surprise me
+          <span aria-hidden="true">✦</span>
+        </MagneticButton>
+
+        <div className="relative mt-5 h-[1.8em] w-full">
+          <GsapSwap
+            id={error ?? (pending ? "fetching" : "hint")}
+            className="absolute inset-x-0"
+          >
+            <p
+              id={errorId}
+              role={error ? "alert" : pending ? "status" : undefined}
+              className={cx(
+                "text-base",
+                error ? "text-danger-text" : "text-ink-faint",
+              )}
+            >
+              {error
+                ? errorCopy(error)
+                : pending
+                  ? "Looking up that public profile…"
+                  : "Public profiles only. Press Enter to play."}
+            </p>
+          </GsapSwap>
+        </div>
+      </form>
     </main>
   );
 }
