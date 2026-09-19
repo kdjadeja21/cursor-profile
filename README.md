@@ -43,6 +43,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 All reads/writes go through route handlers using the service-role key, so no
 RLS policy needs to allow client access to the table.
 
+For a full step-by-step walkthrough (creating the project, running the
+migration, and setting env vars in each environment), see
+[supabase/SETUP.md](supabase/SETUP.md).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
