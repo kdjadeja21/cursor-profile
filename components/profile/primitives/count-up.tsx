@@ -110,7 +110,10 @@ export function CountUp({
   );
 
   return (
-    <span ref={rootRef} className={cx("inline-block will-change-transform", className)}>
+    <span
+      ref={rootRef}
+      className={cx("inline-block overflow-visible will-change-transform", className)}
+    >
       <span ref={digitsRef} aria-hidden="true">
         {format(amount, kind)}
       </span>

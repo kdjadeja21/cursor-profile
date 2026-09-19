@@ -11,6 +11,7 @@ import { SocialMark, socialKindLabel } from "@/components/profile/social-mark";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { parseSocialLinks } from "@/lib/social-links";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import { cx } from "@/lib/cx";
 
 function badgeLabel(value: string): string {
   return value
@@ -110,6 +111,8 @@ export function HeroScene({
   const reduced = useReducedMotion();
   const fired = useRef(false);
   const badgesRef = useRef<HTMLDivElement>(null);
+  const socials = parseSocialLinks(profile.links);
+  const manyLinks = socials.length > 3;
 
   useEffect(() => {
     if (!ready || reduced || fired.current) {
@@ -190,23 +193,37 @@ export function HeroScene({
         </SceneItem>
 
         <SceneItem delay={1.1}>
-          <div className="mt-8 flex flex-col items-center gap-5 lg:items-start">
+          <div
+            className={cx(
+              "flex flex-col items-center lg:items-start",
+              manyLinks ? "mt-5 gap-3" : "mt-8 gap-5",
+            )}
+          >
             {joinedDaysAgo !== null ? (
               <p className="text-ink-faint text-lead">{joinedLabel(joinedDaysAgo)}</p>
             ) : null}
-            {profile.links.length > 0 ? (
-              <ul className="flex flex-col items-center gap-3 lg:items-start">
-                {parseSocialLinks(profile.links).map((link) => (
+            {socials.length > 0 ? (
+              <ul
+                className={cx(
+                  manyLinks
+                    ? "grid w-full max-w-xl grid-cols-2 justify-items-center gap-x-5 gap-y-2.5 sm:grid-cols-3 lg:justify-items-start"
+                    : "flex flex-col items-center gap-3 lg:items-start",
+                )}
+              >
+                {socials.map((link) => (
                   <li key={link.href}>
                     <a
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={`${socialKindLabel(link.kind)}, ${link.label}`}
-                      className="text-ink-muted hover:text-ink text-lead flex items-center gap-3 transition-colors"
+                      className={cx(
+                        "text-ink-muted hover:text-ink flex items-center gap-3 transition-colors",
+                        manyLinks ? "text-base" : "text-lead",
+                      )}
                     >
                       <SocialMark kind={link.kind} className="h-[1.15em] w-[1.15em] shrink-0" />
-                      <span>{link.label}</span>
+                      <span className="max-w-[14ch] truncate sm:max-w-none">{link.label}</span>
                     </a>
                   </li>
                 ))}

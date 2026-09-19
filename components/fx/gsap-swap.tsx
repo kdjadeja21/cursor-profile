@@ -39,7 +39,7 @@ export function GsapSwap({
   );
 
   return (
-    <div ref={ref} className={cx("will-change-transform", className)}>
+    <div ref={ref} className={cx("overflow-visible will-change-transform", className)}>
       {children}
     </div>
   );

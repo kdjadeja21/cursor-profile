@@ -269,14 +269,14 @@ export function TokenStream({
     : formatCompactNumber(total);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(200px,280px)_1fr] lg:items-center lg:gap-10">
+    <div className="grid gap-5 lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] lg:items-center lg:gap-10">
       <SceneItem delay={0.3} from="left">
-        <div className="glass rounded-3xl p-5 sm:p-8">
+        <div className="glass overflow-visible rounded-3xl p-5 sm:p-8">
           <p className="text-ink-faint text-small mb-3 tracking-[0.3em] uppercase">
             {active ? formatDayLabel(active.entry.date) : "Last 30 days"}
           </p>
           <GsapSwap id={readoutKey}>
-            <p className="text-hero text-accent tabular font-extrabold leading-none">
+            <p className="text-display sm:text-hero text-accent overflow-visible pr-[0.2em] font-extrabold leading-none tracking-normal tabular">
               {readoutValue}
             </p>
           </GsapSwap>

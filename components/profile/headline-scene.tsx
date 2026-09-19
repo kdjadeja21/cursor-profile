@@ -50,14 +50,14 @@ export function HeadlineScene({ stats }: { stats: HeadlineStat[] }) {
             </p>
           </SceneItem>
           <SceneItem delay={0.35} from="scale">
-            <p className="text-hero sm:text-giant overflow-visible tabular font-extrabold">
+            <p className="text-hero sm:text-giant overflow-visible pr-[0.18em] font-extrabold tracking-normal tabular">
               <CountUp
                 amount={lead.amount}
                 kind={lead.kind}
                 start={ready}
                 delay={0.5}
                 duration={2.4}
-                className="gradient-accent"
+                className="gradient-accent overflow-visible pr-[0.12em]"
               />
             </p>
           </SceneItem>
