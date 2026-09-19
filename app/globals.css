@@ -97,6 +97,11 @@ html[data-scenes] {
   scrollbar-width: none;
 }
 
+/* GSAP owns the camera while a scene tween is in flight. */
+html[data-scenes][data-scrolling] {
+  scroll-snap-type: none;
+}
+
 html[data-scenes]::-webkit-scrollbar {
   display: none;
 }

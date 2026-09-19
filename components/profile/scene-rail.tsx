@@ -2,24 +2,9 @@
 
 import { useRef } from "react";
 import type { SceneDefinition } from "@/components/profile/scene";
-import { gsap, useGSAP, EASE_IN_OUT } from "@/lib/gsap";
+import { gsap, useGSAP } from "@/lib/gsap";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
-
-export function scrollToScene(id: string) {
-  const target = document.getElementById(id);
-  if (!target) {
-    return;
-  }
-
-  const scroller = document.scrollingElement ?? document.documentElement;
-  gsap.to(scroller, {
-    scrollTop: scroller.scrollTop + target.getBoundingClientRect().top,
-    duration: 0.85,
-    ease: EASE_IN_OUT,
-    overwrite: true,
-  });
-}
 
 /** Fixed progress rail. The active marker slides between stops rather than jumping. */
 export function SceneRail({

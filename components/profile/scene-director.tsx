@@ -5,13 +5,13 @@ import type { SceneDefinition } from "@/components/profile/scene";
 import { GsapFill } from "@/components/fx/gsap-fill";
 import { GsapSwap } from "@/components/fx/gsap-swap";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { isSceneScrolling } from "@/lib/scroll-to-scene";
 import { useIsClient } from "@/lib/use-is-client";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 /**
- * Plays the scenes as a paced recap so nobody has to touch the screen. Any wheel,
- * touch or paging key hands control back immediately; the arrows still step scenes
- * once the visitor has taken over.
+ * Plays the scenes as a paced recap so nobody has to touch the screen. The first
+ * wheel hands control back; later wheels ease to the next scene instead of snapping.
  */
 export function SceneDirector({
   scenes,
@@ -60,6 +60,7 @@ export function SceneDirector({
 
   useEffect(() => {
     const handOver = () => onPausedChange(true);
+    let ignoreUntil = 0;
 
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -95,16 +96,75 @@ export function SceneDirector({
       }
     };
 
-    window.addEventListener("wheel", handOver, { passive: true });
+    const sceneAt = (index: number) =>
+      document.querySelector<HTMLElement>(`section[data-scene-index="${index}"]`);
+
+    const canLeaveScene = (deltaY: number) => {
+      const section = sceneAt(activeIndex);
+      if (!section) {
+        return true;
+      }
+
+      const overflowing = section.offsetHeight > window.innerHeight + 24;
+      if (!overflowing) {
+        return true;
+      }
+
+      const top = window.scrollY + section.getBoundingClientRect().top;
+      const bottom = top + section.offsetHeight;
+      const edge = 28;
+
+      if (deltaY > 0) {
+        return window.scrollY + window.innerHeight >= bottom - edge;
+      }
+
+      return window.scrollY <= top + edge;
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      if (!armed || Math.abs(event.deltaY) < 8) {
+        return;
+      }
+
+      if (playing) {
+        event.preventDefault();
+        handOver();
+        ignoreUntil = performance.now() + 360;
+        return;
+      }
+
+      if (performance.now() < ignoreUntil || isSceneScrolling()) {
+        event.preventDefault();
+        return;
+      }
+
+      if (!canLeaveScene(event.deltaY)) {
+        return;
+      }
+
+      const delta = event.deltaY > 0 ? 1 : -1;
+      const next = activeIndex + delta;
+      if (next < 0 || next >= scenes.length) {
+        return;
+      }
+
+      event.preventDefault();
+      handOver();
+      step(delta);
+    };
+
+    if (armed) {
+      window.addEventListener("wheel", onWheel, { passive: false });
+    }
     window.addEventListener("touchstart", handOver, { passive: true });
     window.addEventListener("keydown", onKey);
 
     return () => {
-      window.removeEventListener("wheel", handOver);
+      window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", handOver);
       window.removeEventListener("keydown", onKey);
     };
-  }, [onJump, onPausedChange, scenes.length, step]);
+  }, [activeIndex, armed, onJump, onPausedChange, playing, scenes.length, step]);
 
   useGSAP(
     () => {
@@ -140,7 +200,7 @@ export function SceneDirector({
   return (
     <div
       ref={pillRef}
-      className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 sm:bottom-6 sm:px-4"
+      className="fixed inset-x-0 bottom-12 z-40 flex justify-center px-3 sm:bottom-14 sm:px-4"
     >
       <div className="glass flex items-center gap-1 rounded-full py-1.5 pr-2 pl-2">
         <button

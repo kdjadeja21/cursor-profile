@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { displayFont } from "@/app/fonts";
 import { AuroraBackdrop } from "@/components/fx/aurora-backdrop";
+import { SiteCredit } from "@/components/site-credit";
 import "./globals.css";
 
 /** Without an absolute base, the generated share card is referenced relatively and
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Persistent across routes so gate -> loading -> profile share one sky. */}
         <AuroraBackdrop />
         {children}
+        <SiteCredit />
       </body>
     </html>
   );

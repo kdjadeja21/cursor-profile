@@ -24,7 +24,7 @@ import { useMood } from "@/lib/use-mood";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { cx } from "@/lib/cx";
 
-const SAMPLE_HANDLES = ["kdjadeja", "your-username", "cursor-ambassador"];
+const SAMPLE_HANDLES = ["your-username", "cursor-ambassador"];
 
 function errorCopy(kind: GateError): string {
   switch (kind) {
