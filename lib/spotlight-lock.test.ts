@@ -9,6 +9,7 @@ import {
   mergeSpotlightStatus,
   nextStatusDelayMs,
   pickCuratedHandle,
+  nextSurpriseHandle,
   DISPLAY_IDLE_POLL_MS,
   MIN_STATUS_REFRESH_MS,
   type SpotlightStatusResponse,
@@ -157,5 +158,45 @@ describe("pickCuratedHandle", () => {
   it("never returns an index past the end of the pool", () => {
     const picked = pickCuratedHandle(() => 0.999999);
     assert.equal(picked, CURATED_HANDLES[CURATED_HANDLES.length - 1]);
+  });
+
+  it("skips excluded handles when others remain", () => {
+    const first = CURATED_HANDLES[0];
+    assert.ok(first);
+    const picked = pickCuratedHandle(() => 0, [first]);
+    assert.equal(picked, CURATED_HANDLES[1]);
+  });
+});
+
+describe("nextSurpriseHandle", () => {
+  it("walks the pool without replacement", () => {
+    const seen = new Set<string>();
+    let remaining: string[] = [];
+    let last: string | null = null;
+
+    for (let step = 0; step < CURATED_HANDLES.length; step += 1) {
+      const next = nextSurpriseHandle(CURATED_HANDLES, remaining, last, () => 0);
+      assert.ok(next);
+      assert.equal(seen.has(next.handle), false);
+      seen.add(next.handle);
+      remaining = next.remaining;
+      last = next.handle;
+    }
+
+    assert.equal(seen.size, CURATED_HANDLES.length);
+  });
+
+  it("does not immediately repeat the last handle when the bag refills", () => {
+    const last = CURATED_HANDLES[0];
+    assert.ok(last);
+    const next = nextSurpriseHandle(CURATED_HANDLES, [], last, () => 0);
+    assert.ok(next);
+    assert.notEqual(next.handle, last);
+  });
+
+  it("includes the newly added surprise profiles", () => {
+    assert.ok(CURATED_HANDLES.includes("jatin-babariya"));
+    assert.ok(CURATED_HANDLES.includes("kdjadeja"));
+    assert.ok(CURATED_HANDLES.includes("vishalnai56"));
   });
 });

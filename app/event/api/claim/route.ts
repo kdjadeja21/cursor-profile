@@ -30,7 +30,10 @@ export async function POST(request: Request) {
 
   const input =
     record.random === true
-      ? { kind: "random" as const }
+      ? {
+          kind: "random" as const,
+          username: typeof record.username === "string" ? record.username : undefined,
+        }
       : typeof record.username === "string"
         ? { kind: "username" as const, username: record.username }
         : null;

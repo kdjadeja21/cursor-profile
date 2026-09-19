@@ -2,6 +2,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getCursorProfile } from "@/lib/cursor-profile";
 import { HANDLE_PATTERN, parseHandleInput } from "@/lib/handle";
 import {
+  CURATED_HANDLES,
   EXPIRY_SECONDS,
   computeSecondsRemaining,
   pickCuratedHandle,
@@ -90,6 +91,23 @@ export async function getSpotlightStatus(): Promise<SpotlightStatusResponse> {
   };
 }
 
+const CURATED_BY_LOWERCASE = new Map(
+  CURATED_HANDLES.map((handle) => [handle.toLowerCase(), handle]),
+);
+
+function resolveRandomHandle(preferredUsername?: string): string | null {
+  if (typeof preferredUsername === "string") {
+    const preferred = CURATED_BY_LOWERCASE.get(
+      preferredUsername.trim().replace(/^@+/, "").toLowerCase(),
+    );
+    if (preferred) {
+      return preferred;
+    }
+  }
+
+  return pickCuratedHandle();
+}
+
 /**
  * The atomic claim (PRD Option A). `expireIfStale` and the claim UPDATE below are two
  * separate statements, but that's fine: the claim's own `WHERE status = 'idle'` guard
@@ -101,7 +119,7 @@ export async function claimSpotlight(input: ClaimInput): Promise<ClaimResult> {
   let isRandom = false;
 
   if (input.kind === "random") {
-    const picked = pickCuratedHandle();
+    const picked = resolveRandomHandle(input.username);
     if (!picked) {
       return { ok: false, reason: "no-curated-profiles" };
     }

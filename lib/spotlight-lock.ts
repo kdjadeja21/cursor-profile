@@ -13,9 +13,8 @@ import type { CursorProfile } from "@/lib/cursor-profile";
 export const EXPIRY_SECONDS = 60;
 
 /**
- * Fixed, pre-curated pool for "Surprise Me" (FR2). Deliberately not live attendee
- * data, and kept local to this feature rather than shared with the landing page's
- * own featured-handle list, per the "put everything here" brief.
+ * Fixed, pre-curated pool for "Surprise Me" on the landing page and /event (FR2).
+ * Deliberately not live attendee data.
  */
 export const CURATED_HANDLES: readonly string[] = [
   "eric",
@@ -24,6 +23,9 @@ export const CURATED_HANDLES: readonly string[] = [
   "emily",
   "nate",
   "erik",
+  "jatin-babariya",
+  "kdjadeja",
+  "vishalnai56",
 ];
 
 /**
@@ -46,7 +48,7 @@ export type SpotlightStatusResponse =
 
 export type ClaimInput =
   | { kind: "username"; username: string }
-  | { kind: "random" };
+  | { kind: "random"; username?: string };
 
 export type ClaimFailureReason =
   | "invalid-handle"
@@ -168,18 +170,55 @@ export function mergeSpotlightStatus(
   return current;
 }
 
-/** Hidden/disabled by callers when this returns null (empty/misconfigured list, §9). */
-export function pickCuratedHandle(
-  random: () => number = Math.random,
+function pickFromPool(
+  pool: readonly string[],
+  random: () => number,
 ): string | null {
-  if (CURATED_HANDLES.length === 0) {
+  if (pool.length === 0) {
     return null;
   }
 
-  const index = Math.min(
-    CURATED_HANDLES.length - 1,
-    Math.floor(random() * CURATED_HANDLES.length),
-  );
+  const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
+  return pool[index] ?? null;
+}
 
-  return CURATED_HANDLES[index];
+/** Hidden/disabled by callers when this returns null (empty/misconfigured list, §9). */
+export function pickCuratedHandle(
+  random: () => number = Math.random,
+  exclude: readonly string[] = [],
+): string | null {
+  const excluded = new Set(exclude);
+  const pool = CURATED_HANDLES.filter((handle) => !excluded.has(handle));
+  return pickFromPool(pool.length > 0 ? pool : CURATED_HANDLES, random);
+}
+
+/**
+ * Walk the curated pool without replacement. When the remaining bag is empty,
+ * refill it and skip `lastPicked` so a new cycle does not immediately repeat.
+ */
+export function nextSurpriseHandle(
+  handles: readonly string[],
+  remaining: readonly string[],
+  lastPicked: string | null,
+  random: () => number = Math.random,
+): { handle: string; remaining: string[] } | null {
+  const known = new Set(handles);
+  let pool = remaining.filter((handle) => known.has(handle));
+
+  if (pool.length === 0) {
+    pool = handles.filter((handle) => handle !== lastPicked);
+    if (pool.length === 0) {
+      pool = [...handles];
+    }
+  }
+
+  const handle = pickFromPool(pool, random);
+  if (!handle) {
+    return null;
+  }
+
+  return {
+    handle,
+    remaining: pool.filter((candidate) => candidate !== handle),
+  };
 }
