@@ -200,7 +200,7 @@ export function SceneDirector({
   return (
     <div
       ref={pillRef}
-      className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-3 sm:bottom-6 sm:px-4"
+      className="fixed inset-x-0 bottom-12 z-40 flex justify-center px-3 sm:bottom-14 sm:px-4"
     >
       <div className="glass flex items-center gap-1 rounded-full py-1.5 pr-2 pl-2">
         <button
