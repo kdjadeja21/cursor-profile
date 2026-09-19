@@ -36,3 +36,14 @@ Required sequence, in order:
 5. Only then create the new branch from that updated `main`.
 
 Do not branch from a stale local checkout or a snapshot taken before this fetch/pull. Do not skip the pull because `git fetch` already updated remote-tracking refs. Do not create the branch in the same step as a pull that still had commits to apply.
+
+## If the pull produces merge conflicts
+
+Stop. Do not continue committing, pushing, force-pushing, or discarding work.
+
+Ask the user which path they want:
+
+1. **User solves it** — leave the conflicted files as-is, list the conflicted paths, and wait for the user to resolve and confirm. Do not edit the conflicted files unless they later ask you to take over.
+2. **Agent solves it** — resolve the conflicts for correctness, keep both sides when they are compatible, re-run the affected checks, then continue the required sequence (pull again until already up to date, then commit).
+
+If the user has not chosen, ask once and wait. Do not pick a path on your own. If a conflict cannot be resolved confidently even after they choose the agent path, stop and surface the remaining conflict instead of guessing.
