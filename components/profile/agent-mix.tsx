@@ -15,10 +15,14 @@ import { cx } from "@/lib/cx";
 
 type Slice = "local" | "cloud";
 
-const RADIUS = 78;
+const VIEW = 200;
+const CENTER = 100;
+const STROKE = 12;
+const HOVER_STROKE = 18;
+const RADIUS = 82;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 /** Keeps the two arcs from reading as a single continuous ring once the round caps meet. */
-const ARC_GAP = 18;
+const ARC_GAP = 16;
 
 const SLICES: { slice: Slice; colour: string; dot: string; glow: string }[] = [
   {
@@ -115,7 +119,7 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
 
       if (localRef.current) {
         gsap.to(localRef.current, {
-          strokeWidth: hovered === "local" ? 24 : 14,
+          strokeWidth: hovered === "local" ? HOVER_STROKE : STROKE,
           opacity: hovered === "cloud" ? 0.28 : 1,
           duration: 0.3,
           ease: "power2.out",
@@ -125,7 +129,7 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
 
       if (cloudRef.current) {
         gsap.to(cloudRef.current, {
-          strokeWidth: hovered === "cloud" ? 24 : 14,
+          strokeWidth: hovered === "cloud" ? HOVER_STROKE : STROKE,
           opacity: hovered === "local" ? 0.28 : 1,
           duration: 0.3,
           ease: "power2.out",
@@ -164,47 +168,51 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
     <div className="grid gap-8 lg:grid-cols-[auto_1fr] lg:items-center lg:gap-12">
       <div className="flex flex-col items-center gap-10 sm:flex-row sm:gap-12">
         <SceneItem from="scale" delay={0.2}>
-          <div className="relative h-[min(42vmin,240px)] w-[min(42vmin,240px)] shrink-0">
-            <svg viewBox="0 0 196 196" className="h-full w-full -rotate-90 overflow-visible">
+          <div className="relative size-[min(52vmin,17.5rem)] shrink-0">
+            <svg
+              viewBox={`0 0 ${VIEW} ${VIEW}`}
+              className="h-full w-full -rotate-90 overflow-visible"
+            >
               <circle
-                cx={98}
-                cy={98}
+                cx={CENTER}
+                cy={CENTER}
                 r={RADIUS}
                 fill="none"
                 stroke="var(--color-edge)"
-                strokeWidth={14}
+                strokeWidth={STROKE}
               />
               {/* Round caps on a zero-length arc still paint a stray dot. */}
               <circle
                 ref={localRef}
-                cx={98}
-                cy={98}
+                cx={CENTER}
+                cy={CENTER}
                 r={RADIUS}
                 fill="none"
                 stroke="var(--color-data-local)"
                 visibility={agents.local > 0 ? "visible" : "hidden"}
                 strokeLinecap="round"
-                strokeWidth={14}
+                strokeWidth={STROKE}
                 strokeDashoffset={-ARC_GAP / 2}
                 strokeDasharray={`0 ${CIRCUMFERENCE}`}
               />
               <circle
                 ref={cloudRef}
-                cx={98}
-                cy={98}
+                cx={CENTER}
+                cy={CENTER}
                 r={RADIUS}
                 fill="none"
                 stroke="var(--color-data-cloud)"
                 visibility={agents.cloud > 0 ? "visible" : "hidden"}
                 strokeLinecap="round"
-                strokeWidth={14}
+                strokeWidth={STROKE}
                 strokeDashoffset={-(CIRCUMFERENCE * agents.localShare + ARC_GAP / 2)}
                 strokeDasharray={`0 ${CIRCUMFERENCE}`}
               />
             </svg>
 
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-hero text-ink tabular font-extrabold leading-none">
+            {/* Inset past the stroke so the count and label stay inside the hole. */}
+            <div className="@container pointer-events-none absolute inset-[18%] flex flex-col items-center justify-center px-1 text-center">
+              <span className="text-ink w-full tabular max-w-full font-extrabold leading-none tracking-tight text-[clamp(1.15rem,32cqi,2.35rem)]">
                 {hovered ? (
                   formatAgentCount(centre.value)
                 ) : (
@@ -214,10 +222,11 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
                     start={ready}
                     delay={0.6}
                     duration={1.8}
+                    punch={false}
                   />
                 )}
               </span>
-              <span className="text-ink-faint text-small mt-3 tracking-[0.3em] uppercase">
+              <span className="text-ink-faint mt-1.5 max-w-full leading-tight tracking-[0.14em] uppercase text-[clamp(0.5rem,10.5cqi,0.68rem)]">
                 {centre.label}
               </span>
             </div>
