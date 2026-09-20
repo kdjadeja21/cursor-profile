@@ -212,7 +212,7 @@ export function AgentMix({ agents }: { agents: AgentTotals }) {
 
             {/* Inset past the stroke so the count and label stay inside the hole. */}
             <div className="@container pointer-events-none absolute inset-[18%] flex flex-col items-center justify-center px-1 text-center">
-              <span className="text-ink w-full tabular max-w-full font-extrabold leading-none tracking-tight text-[clamp(1.15rem,32cqi,2.35rem)]">
+              <span className="text-ink w-full max-w-full whitespace-nowrap tabular font-extrabold leading-none tracking-tight text-[clamp(1.05rem,calc(100cqi/5),2.05rem)]">
                 {hovered ? (
                   formatAgentCount(centre.value)
                 ) : (
