@@ -1,3 +1,9 @@
+"use client";
+
+import { useEffect } from "react";
+import { useVisualKeyboardOpen } from "@/lib/use-visual-keyboard";
+import { cx } from "@/lib/cx";
+
 const NAME_HREF = "https://linktr.ee/krushnasinh";
 const CURSOR_HREF = "https://cursor.com/";
 
@@ -22,8 +28,28 @@ function CreditLink({
 
 /** App-wide credit. Fixed so the home gate and the recap share the same line. */
 export function SiteCredit() {
+  const keyboardOpen = useVisualKeyboardOpen();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (keyboardOpen) {
+      root.dataset.keyboard = "";
+    } else {
+      delete root.dataset.keyboard;
+    }
+    return () => {
+      delete root.dataset.keyboard;
+    };
+  }, [keyboardOpen]);
+
   return (
-    <footer className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-4 py-3">
+    <footer
+      aria-hidden={keyboardOpen}
+      className={cx(
+        "pointer-events-none fixed inset-x-0 bottom-0 z-30 px-4 py-3",
+        keyboardOpen && "hidden",
+      )}
+    >
       <p className="text-ink-faint text-micro flex flex-wrap items-center justify-center gap-x-2 gap-y-1 tracking-[0.22em] uppercase">
         <span className="pointer-events-auto">
           Crafted by <CreditLink href={NAME_HREF}>Krushnasinh Jadeja</CreditLink>

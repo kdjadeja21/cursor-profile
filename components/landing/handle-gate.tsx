@@ -115,9 +115,14 @@ export function HandleGate({
   useMood("idle");
 
   useEffect(() => {
-    if (!pending) {
-      inputRef.current?.focus();
+    if (pending) {
+      return;
     }
+    /* Autofocus opens the software keyboard and used to slide the credit over Play. */
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      return;
+    }
+    inputRef.current?.focus();
   }, [pending]);
 
   useGSAP(
@@ -185,7 +190,10 @@ export function HandleGate({
   };
 
   return (
-    <main className="relative flex flex-1 flex-col items-center justify-center overflow-x-clip">
+    <main
+      data-keyboard-stack
+      className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-clip overflow-y-auto"
+    >
       <ParticleField />
 
       <form
@@ -258,7 +266,15 @@ export function HandleGate({
               readOnly={pending}
               aria-invalid={error !== null}
               aria-describedby={errorId}
-              onFocus={() => setFocused(true)}
+              onFocus={() => {
+                setFocused(true);
+                requestAnimationFrame(() => {
+                  inputRef.current?.scrollIntoView({
+                    block: "center",
+                    inline: "nearest",
+                  });
+                });
+              }}
               onBlur={() => setFocused(false)}
               onChange={(event) => {
                 setHandle(event.target.value);

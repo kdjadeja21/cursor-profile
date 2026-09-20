@@ -115,6 +115,17 @@ body {
   overflow-x: clip;
 }
 
+/* Keep gate/event copy above the fixed credit. When the keyboard is open the
+   credit hides and the stack pins to the top so it can scroll instead of collide. */
+[data-keyboard-stack] {
+  padding-bottom: max(4.75rem, env(safe-area-inset-bottom, 0px) + 3.25rem);
+}
+
+html[data-keyboard] [data-keyboard-stack] {
+  justify-content: flex-start;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
 /* Tabular figures keep animated counters from jittering as digits change width. */
 .tabular {
   font-variant-numeric: tabular-nums;
