@@ -71,7 +71,10 @@ export function EventEntry({ hasSurprise }: { hasSurprise: boolean }) {
     status.status === "presenting" ? status.secondsRemaining : 60;
 
   return (
-    <main className="relative flex flex-1 flex-col items-center justify-center overflow-x-clip px-4 py-12 text-center sm:px-6 sm:py-16">
+    <main
+      data-keyboard-stack
+      className="relative flex min-h-0 flex-1 flex-col items-center justify-safe-center overflow-x-clip overflow-y-auto px-4 py-12 text-center sm:px-6 sm:py-16"
+    >
       <ParticleField />
 
       <div className="relative z-10 mb-10">

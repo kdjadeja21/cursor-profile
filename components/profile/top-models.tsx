@@ -79,7 +79,7 @@ function ModelCard({
         {featured ? (
           <BrandMark
             model={model}
-            className="pointer-events-none absolute -right-4 -bottom-6 h-[78%] w-[78%] max-w-none opacity-[0.14] sm:-right-6 sm:-bottom-8"
+            className="pointer-events-none absolute -right-8 -bottom-10 aspect-square h-[88%] w-auto max-w-none opacity-[0.12]"
           />
         ) : null}
 
@@ -106,7 +106,7 @@ function ModelCard({
             <div className="mt-8 flex min-h-0 flex-1 items-center gap-5 sm:mt-10 sm:gap-7">
               <BrandMark
                 model={model}
-                className="h-[min(22vmin,132px)] w-[min(22vmin,132px)] shrink-0"
+                className="aspect-square h-[min(22vmin,132px)] w-[min(22vmin,132px)] shrink-0"
               />
               <p className="text-heading sm:text-display lg:text-hero min-w-0 font-bold tracking-normal text-balance">
                 {model.name}
@@ -114,7 +114,7 @@ function ModelCard({
             </div>
           ) : (
             <div className="mt-4 flex items-center gap-4">
-              <BrandMark model={model} className="h-11 w-11 shrink-0 sm:h-12 sm:w-12" />
+              <BrandMark model={model} className="aspect-square h-11 w-11 shrink-0 sm:h-12 sm:w-12" />
               <p className="text-title sm:text-heading min-w-0 font-bold tracking-normal text-balance">
                 {model.name}
               </p>

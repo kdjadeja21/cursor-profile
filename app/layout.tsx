@@ -20,6 +20,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#0a0a0b",
+  /* Shrink the layout with the software keyboard so the fixed credit cannot sit on the form. */
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

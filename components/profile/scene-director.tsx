@@ -187,11 +187,6 @@ export function SceneDirector({
   }
 
   const label = playing
-    ? "Playing the recap · scroll to take over"
-    : isLast
-      ? "That's the recap"
-      : `${scenes[activeIndex]?.label ?? ""} · ${activeIndex + 1} / ${scenes.length}`;
-  const shortLabel = playing
     ? "Playing · scroll"
     : isLast
       ? "That's the recap"
@@ -200,9 +195,9 @@ export function SceneDirector({
   return (
     <div
       ref={pillRef}
-      className="fixed inset-x-0 bottom-12 z-40 flex justify-center px-3 sm:bottom-14 sm:px-4"
+      className="fixed inset-x-0 bottom-12 z-40 flex justify-center px-3 sm:bottom-14"
     >
-      <div className="glass flex items-center gap-1 rounded-full py-1.5 pr-2 pl-2">
+      <div className="glass flex max-w-[min(92vw,15.5rem)] items-center gap-0.5 rounded-full py-1 pr-1 pl-1">
         <button
           type="button"
           onClick={() => {
@@ -216,7 +211,7 @@ export function SceneDirector({
           aria-label={
             isLast ? "Replay the recap" : playing ? "Pause the recap" : "Play the recap"
           }
-          className="text-ink hover:bg-white/10 focus-visible:ring-ink flex h-9 w-9 items-center justify-center rounded-full outline-none focus-visible:ring-2"
+          className="text-ink hover:bg-white/10 focus-visible:ring-ink flex h-8 w-8 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2"
         >
           {playing ? (
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
@@ -244,18 +239,17 @@ export function SceneDirector({
           )}
         </button>
 
-        <div className="relative flex h-9 min-w-0 max-w-[min(58vw,280px)] items-center overflow-hidden px-2 sm:min-w-[240px] sm:max-w-none sm:px-3">
+        <div className="relative flex h-8 min-w-0 flex-1 items-center justify-center overflow-hidden px-1.5">
           <GsapSwap id={label} className="min-w-0">
-            <span className="text-ink-muted text-micro truncate tracking-[0.18em] uppercase">
-              <span className="sm:hidden">{shortLabel}</span>
-              <span className="hidden sm:inline">{label}</span>
+            <span className="text-ink-muted text-micro block truncate tracking-[0.12em] uppercase">
+              {label}
             </span>
           </GsapSwap>
 
           {playing && dwell > 0 ? (
             <div
               aria-hidden="true"
-              className="bg-edge absolute inset-x-3 bottom-0.5 h-px overflow-hidden rounded-full"
+              className="bg-edge absolute inset-x-1.5 bottom-0.5 h-px overflow-hidden rounded-full"
             >
               <GsapFill
                 key={activeIndex}
@@ -276,7 +270,7 @@ export function SceneDirector({
           }}
           disabled={isLast}
           aria-label="Next scene"
-          className="text-ink hover:bg-white/10 focus-visible:ring-ink flex h-9 w-9 items-center justify-center rounded-full outline-none focus-visible:ring-2 disabled:opacity-30"
+          className="text-ink hover:bg-white/10 focus-visible:ring-ink flex h-8 w-8 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-2 disabled:opacity-30"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
             <path

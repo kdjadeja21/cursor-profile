@@ -161,7 +161,15 @@ export function EntryForm({
             readOnly={pending}
             aria-invalid={error !== null}
             aria-describedby={errorId}
-            onFocus={() => setFocused(true)}
+            onFocus={() => {
+              setFocused(true);
+              requestAnimationFrame(() => {
+                inputRef.current?.scrollIntoView({
+                  block: "center",
+                  inline: "nearest",
+                });
+              });
+            }}
             onBlur={() => setFocused(false)}
             onChange={(event) => {
               setHandle(event.target.value);
