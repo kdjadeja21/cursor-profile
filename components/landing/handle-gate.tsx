@@ -192,7 +192,7 @@ export function HandleGate({
   return (
     <main
       data-keyboard-stack
-      className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-clip overflow-y-auto"
+      className="relative flex min-h-0 flex-1 flex-col items-center justify-safe-center overflow-x-clip overflow-y-auto"
     >
       <ParticleField />
 

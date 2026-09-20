@@ -73,7 +73,7 @@ export function EventEntry({ hasSurprise }: { hasSurprise: boolean }) {
   return (
     <main
       data-keyboard-stack
-      className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-clip overflow-y-auto px-4 py-12 text-center sm:px-6 sm:py-16"
+      className="relative flex min-h-0 flex-1 flex-col items-center justify-safe-center overflow-x-clip overflow-y-auto px-4 py-12 text-center sm:px-6 sm:py-16"
     >
       <ParticleField />
 

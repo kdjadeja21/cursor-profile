@@ -115,15 +115,20 @@ body {
   overflow-x: clip;
 }
 
-/* Keep gate/event copy above the fixed credit. When the keyboard is open the
-   credit hides and the stack pins to the top so it can scroll instead of collide. */
-[data-keyboard-stack] {
-  padding-bottom: max(4.75rem, env(safe-area-inset-bottom, 0px) + 3.25rem);
+/* Home and event are one-screen columns: the credit spacer owns the bottom
+   band, and the gate scrolls inside what is left. Profile scenes unlock page
+   scroll via `data-scenes`. */
+html:not([data-scenes]) body {
+  height: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
+/* Gate/event screens sit in the remaining column above the in-flow credit
+   spacer. When the keyboard is open the credit hides and the stack pins to
+   the top so it can scroll instead of colliding. */
 html[data-keyboard] [data-keyboard-stack] {
   justify-content: flex-start;
-  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
 }
 
 /* Tabular figures keep animated counters from jittering as digits change width. */
