@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { getCursorProfile, normalizeHandle } from "@/lib/cursor-profile";
 import {
@@ -25,6 +27,29 @@ const CELL_COLOURS = [
   ACCENT,
 ];
 
+async function loadOgFonts() {
+  const dir = join(process.cwd(), "app/fonts");
+  const [regular, bold] = await Promise.all([
+    readFile(join(dir, "CursorGothic-Regular.ttf")),
+    readFile(join(dir, "CursorGothic-Bold.ttf")),
+  ]);
+
+  return [
+    {
+      name: "CursorGothic",
+      data: regular,
+      weight: 400 as const,
+      style: "normal" as const,
+    },
+    {
+      name: "CursorGothic",
+      data: bold,
+      weight: 700 as const,
+      style: "normal" as const,
+    },
+  ];
+}
+
 function Stat({
   label,
   value,
@@ -39,7 +64,13 @@ function Stat({
       <span style={{ color: INK_FAINT, fontSize: 20, letterSpacing: 3 }}>
         {label.toUpperCase()}
       </span>
-      <span style={{ color: emphasis ? ACCENT : INK, fontSize: 56 }}>
+      <span
+        style={{
+          color: emphasis ? ACCENT : INK,
+          fontSize: 56,
+          fontWeight: 700,
+        }}
+      >
         {value}
       </span>
     </div>
@@ -56,6 +87,7 @@ export default async function Image({
   const result = await getCursorProfile(
     normalizeHandle(decodeURIComponent(handle)),
   );
+  const fonts = await loadOgFonts();
 
   if (!result.ok) {
     return new ImageResponse(
@@ -69,13 +101,14 @@ export default async function Image({
             justifyContent: "center",
             background: SURFACE,
             color: INK_MUTED,
+            fontFamily: "CursorGothic",
             fontSize: 48,
           }}
         >
           No public profile
         </div>
       ),
-      size,
+      { ...size, fonts },
     );
   }
 
@@ -93,7 +126,8 @@ export default async function Image({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          background: SURFACE,
+            background: SURFACE,
+          fontFamily: "CursorGothic",
           padding: 64,
         }}
       >
@@ -119,7 +153,14 @@ export default async function Image({
             <span style={{ color: ACCENT, fontSize: 22, letterSpacing: 4 }}>
               CURSOR AMBASSADOR
             </span>
-            <span style={{ color: INK, fontSize: 64, lineHeight: 1.1 }}>
+            <span
+              style={{
+                color: INK,
+                fontSize: 64,
+                fontWeight: 700,
+                lineHeight: 1.1,
+              }}
+            >
               {profile.displayName}
             </span>
             <span style={{ color: INK_MUTED, fontSize: 30 }}>
@@ -166,6 +207,6 @@ export default async function Image({
         </div>
       </div>
     ),
-    size,
+    { ...size, fonts },
   );
 }
