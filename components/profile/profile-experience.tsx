@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { ProfileIdentity } from "@/lib/cursor-profile";
 import type { ProfileStory } from "@/lib/derive";
@@ -19,7 +19,7 @@ import { Scene, type SceneDefinition } from "@/components/profile/scene";
 import { SceneRail } from "@/components/profile/scene-rail";
 import { SceneDirector } from "@/components/profile/scene-director";
 import { ParticleField } from "@/components/fx/particle-field";
-import { scrollToScene } from "@/lib/scroll-to-scene";
+import { resetSceneScroll, sceneScrollEpoch, scrollToScene } from "@/lib/scroll-to-scene";
 import { useMood } from "@/lib/use-mood";
 
 type SceneSlot = SceneDefinition & {
@@ -44,7 +44,18 @@ export function ProfileExperience({
   const [activeIndex, setActiveIndex] = useState(0);
   const [readyMask, setReadyMask] = useState(1);
   const [paused, setPaused] = useState(false);
+  const [pinnedHandle, setPinnedHandle] = useState(profile.handle);
+  // Jumps captured by an unmounted recap must not move the next presenter.
+  const epochRef = useRef(0);
+  const scrollPinnedFor = useRef<string | null>(null);
   useMood("profile");
+
+  if (pinnedHandle !== profile.handle) {
+    setPinnedHandle(profile.handle);
+    setActiveIndex(0);
+    setReadyMask(1);
+    setPaused(false);
+  }
 
   const hasEarnedMilestone = story.milestones.some((milestone) => milestone.earned);
   const hasModels = story.topModels.length > 0;
@@ -161,19 +172,46 @@ export function ProfileExperience({
     [slots],
   );
 
-  // Scroll snapping lives on <html>, which only this shell should ever switch on.
-  useEffect(() => {
+  // Scroll snapping lives on <html>. This has to run before paint: the window
+  // scroll offset survives a presenter swap, and the scene measurement below
+  // would otherwise treat the previous finale as the new recap's opening scene.
+  useLayoutEffect(() => {
     const root = document.documentElement;
+    const previousAnchor = root.style.overflowAnchor;
+    const previousRestoration = history.scrollRestoration;
     root.dataset.scenes = "";
+    root.style.overflowAnchor = "none";
+    history.scrollRestoration = "manual";
+    epochRef.current = resetSceneScroll();
+
+    // Some browsers reapply the previous offset on the frame after a tall
+    // document is swapped in. Clamp once more before that frame paints.
+    const frame = requestAnimationFrame(() => {
+      if (window.scrollY > 2 || root.scrollTop > 2) {
+        epochRef.current = resetSceneScroll();
+      }
+    });
+
     return () => {
+      cancelAnimationFrame(frame);
+      resetSceneScroll();
       delete root.dataset.scenes;
+      root.style.overflowAnchor = previousAnchor;
+      history.scrollRestoration = previousRestoration;
     };
-  }, []);
+  }, [profile.handle]);
 
   // The active scene is whichever midpoint sits closest to the viewport centre; a
   // scene becomes ready (and stays ready) once it has come within reach of it.
+  // Pin again here, after the previous shell's effect cleanup, so a restored
+  // offset cannot be sampled as the opening scene.
   useEffect(() => {
     let frame = 0;
+
+    if (scrollPinnedFor.current !== profile.handle) {
+      scrollPinnedFor.current = profile.handle;
+      epochRef.current = resetSceneScroll();
+    }
 
     const measure = () => {
       frame = 0;
@@ -222,10 +260,16 @@ export function ProfileExperience({
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
     };
-  }, [slots.length]);
+  }, [profile.handle, slots.length]);
 
   const jump = useCallback(
     (index: number) => {
+      // A dwell timer from the previous presenter can fire after the swap and
+      // would otherwise scroll this recap to whichever scene they were leaving.
+      if (epochRef.current !== sceneScrollEpoch()) {
+        return;
+      }
+
       const scene = scenes[index];
       if (scene) {
         scrollToScene(scene.id);
