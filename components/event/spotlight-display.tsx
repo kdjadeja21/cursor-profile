@@ -13,8 +13,10 @@ export function SpotlightDisplay() {
   const { status } = useSpotlightStatus("display");
 
   if (status.status === "presenting") {
-    // Keyed by username so a brand new claim mounts a fresh recap from the top
-    // rather than resuming whatever scene the previous presenter left playing.
+    // Keyed by username so a new claim remounts the recap. Remounting resets
+    // React state; `ProfileExperience` also pins document scroll to the top,
+    // because a handoff that skips the idle screen would otherwise stay on
+    // the previous finale.
     return <PresentingExperience key={status.username} profile={status.profile} />;
   }
 

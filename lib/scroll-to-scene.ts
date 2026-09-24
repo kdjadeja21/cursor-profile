@@ -7,6 +7,12 @@ const SCROLL_MAX_S = 1.9;
 const SCROLL_S_PER_PX = 1 / 720;
 
 let tween: gsap.core.Tween | null = null;
+let epoch = 0;
+
+/** Bumped every time the camera is forced back to the start of a recap. */
+export function sceneScrollEpoch(): number {
+  return epoch;
+}
 
 export function isSceneScrolling(): boolean {
   return tween?.isActive() === true;
@@ -14,6 +20,39 @@ export function isSceneScrolling(): boolean {
 
 function unlockSnap() {
   delete document.documentElement.dataset.scrolling;
+}
+
+/**
+ * Drop any in-flight scene tween and pin the document to the top.
+ * The camera position lives on the document, so a new recap mounted while the
+ * previous one was on its finale would otherwise measure that leftover offset
+ * and open on the last scene.
+ */
+export function resetSceneScroll(): number {
+  epoch += 1;
+  const active = tween;
+  tween = null;
+  if (active) {
+    active.eventCallback("onComplete", null);
+    active.eventCallback("onInterrupt", null);
+    active.kill();
+  }
+
+  const scroller = document.scrollingElement ?? document.documentElement;
+  gsap.killTweensOf(scroller);
+  unlockSnap();
+
+  if (scroller.scrollTop !== 0) {
+    scroller.scrollTop = 0;
+  }
+  if (document.documentElement.scrollTop !== 0) {
+    document.documentElement.scrollTop = 0;
+  }
+  if (document.body.scrollTop !== 0) {
+    document.body.scrollTop = 0;
+  }
+
+  return epoch;
 }
 
 /**
