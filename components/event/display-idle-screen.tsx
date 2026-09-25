@@ -14,19 +14,19 @@ const CYCLE_MS = 4200;
 const BEATS = [
   {
     id: "stage",
-    kicker: "On this screen",
+    kicker: "On stage",
     value: "60s",
     line: "Your year of building, full screen.",
   },
   {
     id: "room",
-    kicker: "The whole room",
+    kicker: "At a time",
     value: "1",
     line: "One profile at a time.",
   },
   {
     id: "story",
-    kicker: "What they see",
+    kicker: "The story",
     value: "You",
     line: "Tokens, streaks, and the models you reach for.",
   },
@@ -79,11 +79,11 @@ export function DisplayIdleScreen() {
   }, [reduced]);
 
   return (
-    <main className="relative flex min-h-0 flex-1 items-center overflow-x-clip overflow-y-auto px-6 py-6 sm:px-10 lg:px-16">
+    <main className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-clip overflow-y-auto px-6 py-8 sm:px-10">
       <ParticleField />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-10">
-        <div className="relative mx-auto aspect-square w-[min(42vmin,380px)]">
+      <div className="relative z-10 grid w-full max-w-[1180px] items-center gap-8 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-16">
+        <div className="relative mx-auto aspect-square w-[min(48vmin,440px)]">
           <div
             aria-hidden="true"
             className="breathe absolute inset-[8%] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-accent)_42%,transparent),transparent_68%)]"
@@ -100,7 +100,7 @@ export function DisplayIdleScreen() {
                 gradient="conic-gradient(from 0deg, transparent 0deg, var(--color-accent) 70deg, var(--color-ember) 120deg, #fff3e0 140deg, transparent 220deg)"
               />
               <OrbitRing
-                inset="-6%"
+                inset="0%"
                 reverse
                 gradient="conic-gradient(from 180deg, transparent 0deg, var(--color-accent-soft) 40deg, var(--color-ember) 70deg, transparent 130deg)"
               />
