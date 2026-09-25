@@ -3,7 +3,8 @@ import { SpotlightDisplay } from "@/components/event/spotlight-display";
 
 export const metadata: Metadata = {
   title: "Live Profile Spotlight — Display",
-  description: "Presentation screen for the Live Profile Spotlight event feature.",
+  description:
+    "Stage screen for the Live Profile Spotlight. Idle until a teammate claims a profile from their phone.",
   robots: { index: false, follow: false },
 };
 
