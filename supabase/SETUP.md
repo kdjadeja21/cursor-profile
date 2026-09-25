@@ -92,7 +92,7 @@ redeploy.
 
 1. With the env vars set, run `npm run dev`.
 2. Open `http://localhost:3000/event/display` in one tab — it should show
-   the idle QR screen.
+   the idle stage (the open spotlight, with no QR).
 3. Open `http://localhost:3000/event` in another tab, enter a Cursor
    username (or click **Surprise me**), and submit.
 4. The display tab should flip to the full-screen profile within ~2 seconds
